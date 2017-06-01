@@ -1,0 +1,47 @@
+// See README.txt for information and build instructions.
+//
+// Note: START and END tags are used in comments to define sections used in
+// tutorials.  They are not part of the syntax for Protocol Buffers.
+//
+// To get an in-depth walkthrough of this file and the related examples, see:
+// https://developers.google.com/protocol-buffers/docs/tutorials
+
+// [START declaration]
+syntax = "proto2";
+package graduationWork;
+// [END declaration]
+
+// [START csharp_declaration]
+// option csharp_namespace = "Google.Protobuf.GraduationWork.Transform";
+// [END csharp_declaration]
+
+// [START messages]
+message g_Vector3 {
+	required float x = 1;
+	required float y = 2;
+	required float z = 3;
+  }
+message g_Transform {
+  required int32 packetNum = 1; // 중간에 빼먹은 패킷이 있나 확인용.
+  required g_Vector3 position = 2;
+  required g_Vector3 rotation = 3;
+  required g_Vector3 scale = 4;
+}
+
+message g_Message {
+	required string message = 1;
+}
+
+enum g_DataType {
+	PROTOCOL = 0;
+	MESSAGE = 1;
+	TRANSFORM = 2;
+}
+
+message g_DataSize {
+	required int32 clientNum = 1;
+	required g_DataType type = 2;
+	required int32 size = 3;
+}
+
+// [END messages]
