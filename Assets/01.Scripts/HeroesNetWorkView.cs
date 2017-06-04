@@ -12,7 +12,7 @@ using System.Collections;
 
 
 
-public class StartAsyncNetWork : MonoBehaviour
+public class HeroesNetWorkView : MonoBehaviour
 {
     // 통신용 변수.
     private Socket clientSock;  /* client Socket */
@@ -38,6 +38,13 @@ public class StartAsyncNetWork : MonoBehaviour
     int mPacketNumTransform = 0;
 
     bool isRecvSizeState = true;
+
+    GameObject MoveSynchronization;
+    MoveSynchronization MoveSyncComponent;
+
+    GameObject InitCharacter;
+    InitializationCharacter InitComponent;
+
     public byte[] ReSizeBuffer(ref byte[] sourceBuffer, int reSize)
     {
         byte[] newBuffer = new byte[reSize];
@@ -93,18 +100,7 @@ public class StartAsyncNetWork : MonoBehaviour
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public void copyTransform(ref g_Transform target, ref Transform source)
-    {
-        target.position.x = source.position.x;
-        target.position.y = source.position.y;
-        target.position.z = source.position.z;
-        target.rotation.x = source.rotation.x;
-        target.rotation.y = source.rotation.y;
-        target.rotation.z = source.rotation.z;
-        target.scale.x = source.localScale.x;
-        target.scale.y = source.localScale.y;
-        target.scale.z = source.localScale.z;
-    }
+
 
     private void SendByteSize(int clientNum, int size, g_DataType type)
     {
@@ -143,7 +139,7 @@ public class StartAsyncNetWork : MonoBehaviour
                 }
                 g_Transform g_Tr = new g_Transform();
                 g_Tr.packetNum = mPacketNumTransform;
-                copyTransform(ref g_Tr, ref tr);
+                MoveSyncComponent.copyTransformToG_Transform(ref g_Tr, ref tr);
 
                 MemoryStream sendStream = new MemoryStream();
                 Serializer.Serialize(sendStream, g_Tr);
@@ -209,14 +205,14 @@ public class StartAsyncNetWork : MonoBehaviour
     private void SendCallBackTransform(IAsyncResult IAR)
     {
         g_Transform dataTr = (g_Transform)IAR.AsyncState;
-        Debug.Log("전송 완료 CallBack position.x : " + dataTr.position.x);
+    //    Debug.Log("전송 완료 CallBack position.x : " + dataTr.position.x);
 
     }
 
     private void SendCallBackMessage(IAsyncResult IAR)
     {
         g_Message message = (g_Message)IAR.AsyncState;
-        Debug.Log("전송 완료 message = " + message.message);
+    //    Debug.Log("전송 완료 message = " + message.message);
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -233,13 +229,13 @@ public class StartAsyncNetWork : MonoBehaviour
     {
         try
         {
-            Debug.Log("OnReceiveCallBack 호출");
+           // Debug.Log("OnReceiveCallBack 호출");
             Socket tempSock = (Socket)IAR.AsyncState;
             int nReadSize = tempSock.EndReceive(IAR);
 
            // int s = nextDataSize.size;
           //  Debug.Log("!!!!!!!!recvDataSize.size = " + s);
-            Debug.Log("!!!!!!!!nReadSize = " + nReadSize);
+            //Debug.Log("!!!!!!!!nReadSize = " + nReadSize);
           //  Debug.Log("=========과녕 타입은 = " + nextDataSize.type);
             if (nReadSize == 6 && isRecvSizeState)
             {
@@ -257,8 +253,9 @@ public class StartAsyncNetWork : MonoBehaviour
             }
             else if(nReadSize == nextDataSize.size && isRecvSizeState == false)
             {
-                Debug.Log("if문 안");
-                Debug.Log("과녕 타입은 = " + nextDataSize.type);
+                //Debug.Log("if문 안");
+               // Debug.Log("과녕 타입은 = " + nextDataSize.type);
+                
                 if(nextDataSize == null)
                 {
                     Debug.Log("nextDataSize = null");
@@ -292,7 +289,14 @@ public class StartAsyncNetWork : MonoBehaviour
                         break;
                     case g_DataType.TRANSFORM:
                         g_transform = Serializer.Deserialize<g_Transform>(recvStream);
-                        Debug.Log("받은 x위치 = " + g_transform.position.x);
+                        int pkNum = nextDataSize.clientNum;
+                        if (pkNum != MyClientNum && InitComponent.isInitCharacter)
+                        {
+                           // GameObject player = InitComponent.PlayerArray[pkNum];
+
+                            MoveSyncComponent.MoveCharacter(pkNum, ref g_transform);
+                        }
+                        //Debug.Log("받은 x위치 = " + g_transform.position.x);
                         //Vector3 newPosition = new Vector3(g_transform.position.x, g_transform.position.y, g_transform.position.z);
                         //Vector3 newRotation = new Vector3(g_transform.rotation.x, g_transform.rotation.y, g_transform.rotation.z);
                         //Vector3 newScale = new Vector3(g_transform.scale.x, g_transform.scale.y, g_transform.scale.z);
@@ -321,7 +325,7 @@ public class StartAsyncNetWork : MonoBehaviour
 
     public void Receive(int recvSize)
     {
-        Debug.Log("Receive 호출" + recvSize);
+       // Debug.Log("Receive 호출" + recvSize);
         cbSock.BeginReceive(this.recvBuffer, 0, recvSize, SocketFlags.None, new AsyncCallback(OnReceiveCallBack), cbSock);
     }
 
@@ -330,6 +334,14 @@ public class StartAsyncNetWork : MonoBehaviour
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    void Awake()
+    {
+        MoveSynchronization = GameObject.FindGameObjectWithTag("MoveSynchronization");
+        MoveSyncComponent = MoveSynchronization.GetComponent<MoveSynchronization>();
+
+        InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
+        InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
+    }
 
     // Use this for initialization
     void Start()

@@ -3,88 +3,125 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class MoveSynchronization : MonoBehaviour {
 
+    GameObject InitCharacter;
+    InitializationCharacter InitComponent;
     GameObject startNetWork;
-    StartAsyncNetWork netWork;
+    HeroesNetWorkView netWork;
+    
+    public static GameObject MyPlayer;
 
-    public GameObject[] Players;
+    Transform MyTr;
+    Vector3 newPosition;
+    Vector3 newRotation;
+    Vector3 newScal;
+
+    int targetPK = 0;
+    bool isNewTransform = false;
+    //public struct TransformStruct
+    //{
+    //   public Vector3 newPosition;
+    //   public Quaternion newRotation;
+    //   public Vector3 newScale;
+    //   public TransformStruct(Vector3 pos, Vector3 rot, Vector3 scal)
+    //    {
+    //        newPosition = new Vector3(pos.x, pos.y, pos.z);
+    //        newRotation = Quaternion.Euler(rot.x, rot.y, rot.z);
+    //        newScale = new Vector3(scal.x, scal.y, scal.z);
+    //    }
+    //}
 
     void Awake()
     {
         startNetWork = GameObject.FindGameObjectWithTag("StartNetWork");
         // MyClientNum = startNetWork.GetComponent<StartAsyncNetWork>().getMyClientNum();
-        netWork = startNetWork.GetComponent<StartAsyncNetWork>();
+        netWork = startNetWork.GetComponent<HeroesNetWorkView>();
+        InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
+        InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
+        newPosition = new Vector3();
+        newRotation = new Vector3();
+        newScal = new Vector3();
     }
 
     // Use this for initialization
     void Start () {
-        StartCoroutine("ReadCheck");
+        StartCoroutine("WaitCharactorInit");
     }
 
-    IEnumerator ReadCheck()
+    IEnumerator WaitCharactorInit()
     {
-        Debug.Log("클라이언트 번호 받는 중...");
         while (true)
         {
-            if (-1 != netWork.MyClientNum)
+            if (InitComponent.isInitCharacter)
             {
-                Debug.Log("나 클라이언트 번호 = " + netWork.MyClientNum);
-                netWork.SendByteMessage("servantTofu", g_DataType.COMMAND); // 내 캐릭종류
-                //netWork.SendByteMessage("teamRed", g_DataType.COMMAND); // 내 팀 레드
-                netWork.SendByteMessage("teamBlue", g_DataType.COMMAND); // 내 팀 블루
-                netWork.SendByteMessage("EnterRoom", g_DataType.COMMAND); // 방 입장 명령
-                StartCoroutine("CreateCharacter"); // 트랜스폼 코루틴 실행
+                MyPlayer = InitComponent.PlayerArray[netWork.MyClientNum]; //GameObject.FindGameObjectWithTag(netWork.MyClientNum.ToString());
+                MyPlayer.AddComponent<PlayerCtrl>();
+                MyTr = MyPlayer.GetComponent<Transform>();
+                StartCoroutine("MoveSyncSend");
                 break;
             }
             yield return new WaitForSeconds(1.0f);
         }
     }
 
-    void printPlayerInfo(g_CreateCharaterInfo player)
+    IEnumerator MoveSyncSend()
     {
-        Debug.Log("pk = " + player.pkNum);
-        Debug.Log("servant = " + player.servant);
-        Debug.Log("team = " + player.team);
-    }
-
-    IEnumerator CreateCharacter()
-    {
-        Debug.Log("플레이어를 기다리는 중...");
         while (true)
         {
-            if (netWork.isStartState)
-            {
-                Debug.Log("player1 정보");
-                printPlayerInfo(netWork.g_readySet.player1);
-                Debug.Log("player2 정보");
-                printPlayerInfo(netWork.g_readySet.player2);
-                Debug.Log("player3 정보");
-                printPlayerInfo(netWork.g_readySet.player3);
-                Debug.Log("player4 정보");
-                printPlayerInfo(netWork.g_readySet.player4);
-                //Debug.Log("sendThread 시작");
-                //while (true)
-                //{
-                //    //if (mSocket == null)
-                //    //    Debug.Log("소켓 널");
-                //    //Debug.Log("ggggg");
-
-                //   // netWork.SendByteTransform(tr);
-                //    yield return new WaitForSeconds(1.7f);
-                //}
-                break;
-            }
-            else
-            {
-                netWork.SendByteMessage("start", g_DataType.COMMAND);
-            }
-            yield return new WaitForSeconds(3.0f);
+            netWork.SendByteTransform(MyTr); // tr전송
+            yield return new WaitForSeconds(1.7f);
         }
+    }
+
+    public void copyTransformToG_Transform(ref g_Transform target, ref Transform source)
+    {
+        target.position.x = source.position.x;
+        target.position.y = source.position.y;
+        target.position.z = source.position.z;
+        target.rotation.x = source.rotation.x;
+        target.rotation.y = source.rotation.y;
+        target.rotation.z = source.rotation.z;
+        target.scale.x = source.localScale.x;
+        target.scale.y = source.localScale.y;
+        target.scale.z = source.localScale.z;
+    }
+
+
+
+    public void MoveCharacter(int pkNum, ref g_Transform source)
+    {
+
+        newPosition.x = source.position.x;
+        newPosition.y = source.position.y;
+        newPosition.z = source.position.z;
+
+        newRotation.x = source.rotation.x;
+        newRotation.y = source.rotation.y;
+        newRotation.z = source.rotation.z;
+
+        newScal.x = source.scale.x;
+        newScal.y = source.scale.y;
+        newScal.z = source.scale.z;
+
+     //   Debug.Log("앙2");
+     //   Debug.Log("앙3 source.position.x = " + source.position.x);
+
+        targetPK = pkNum;
+        isNewTransform = true;
     }
 
     // Update is called once per frame
     void Update () {
-		
-	}
+
+        if(isNewTransform)
+        {
+            InitComponent.PlayerArray[targetPK].transform.position = newPosition;
+            isNewTransform = false;
+        }
+
+
+
+    }
 }

@@ -7,8 +7,6 @@ using System.Net.Sockets;
 
 public class PlayerCtrl : MonoBehaviour {
 
-  
-
     private float h = 0.0f;
     private float v = 0.0f;
 
@@ -24,10 +22,6 @@ public class PlayerCtrl : MonoBehaviour {
 
     void Start()
     {
-        //mSocket = startNetWork.GetComponent<StartAsyncNetWork>().getSocket();
-        //if (mSocket == null)
-        //    Debug.Log("소켓 널");
-
     }
 
     
@@ -35,14 +29,10 @@ public class PlayerCtrl : MonoBehaviour {
     // Update is called once per frame
     void Update ()
     {
-        //if (this.tag == MyClientNum.ToString())
-        //{
-        //    h = Input.GetAxis("Horizontal");
-        //    v = Input.GetAxis("Vertical");
+        h = Input.GetAxis("Horizontal");
+        v = Input.GetAxis("Vertical");
 
-        //    Vector3 moveDir = (Vector3.forward * v) + (Vector3.right * h);
-        //    tr.Translate(moveDir * Time.deltaTime * moveSpeed, Space.Self);
-        //}
-
+        Vector3 moveDir = (Vector3.forward * v) + (Vector3.right * h);
+        tr.Translate(moveDir * Time.deltaTime * moveSpeed, Space.Self);
     }
 }
