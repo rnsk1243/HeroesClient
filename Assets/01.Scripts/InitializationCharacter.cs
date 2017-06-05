@@ -4,15 +4,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using CommandKinds;
 
+// 캐릭터 초기화(캐릭터 생성)
 public class InitializationCharacter : MonoBehaviour {
 
-    const int servantTofu = 1;
-    const int servantMando = 2;
-    const int servantNone = 0;
-    const int RedTeam = 1;
-    const int BlueTeam = 2;
-    const int NoneTeam = 0;
-
+    const int servantTofu = 1; // 두부캐릭
+    const int servantMando = 2; // 만두캐릭
+    const int servantNone = 0; // 캐릭이 정해지지 않음
+    const int RedTeam = 1; // 레드 팀
+    const int BlueTeam = 2; // 블루 팀
+    const int NoneTeam = 0; // 팀이 정해지지 않음
 
     GameObject startNetWork;
     HeroesNetWorkView netWork;
@@ -46,10 +46,10 @@ public class InitializationCharacter : MonoBehaviour {
             {
                 Debug.Log("나 클라이언트 번호 = " + netWork.MyClientNum);
                 netWork.SendByteMessage(Command.EnterRoom, g_DataType.COMMAND); // 방 입장 명령
-                //netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
-                netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
-                //netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
-                netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
+                netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
+                //netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
+                netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
+                //netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
                 StartCoroutine("CreateCharacter"); // 트랜스폼 코루틴 실행
                 break;
             }
@@ -118,7 +118,7 @@ public class InitializationCharacter : MonoBehaviour {
     }
 
     // Update is called once per frame
-    void Update () {
+ //   void Update () {
 		
-	}
+	//}
 }

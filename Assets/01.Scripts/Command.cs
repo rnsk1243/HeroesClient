@@ -7,7 +7,7 @@ namespace CommandKinds
     public class Command
     {
 
-       public const string SelectTofu = "servantTofu";
+        public const string SelectTofu = "servantTofu";
         public const string SelectMandu = "servantMandu";
         public const string EnterRoom = "EnterRoom";
         public const string TeamRed = "teamRed";

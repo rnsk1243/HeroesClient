@@ -16,43 +16,59 @@ public class HeroesNetWorkView : MonoBehaviour
 {
     // 통신용 변수.
     private Socket clientSock;  /* client Socket */
-    public int MyClientNum = -1;
+    public int MyClientNum = -1; // 클라이언트 간의 구분 번호
     private Socket cbSock;   /* client Async Callback Socket */
 
-    private byte[] recvBuffer;
-    g_DataSize recvDataSize;
-    g_DataSize nextDataSize; // recv한 것을 임시 보관
-    g_DataSize sendDataSize;
-   // g_Message mMessageToServer; // 서버로 부터 받은 메세지 저장
-    g_Message g_message;
-    g_Transform g_transform;
-    public g_ReadySet g_readySet;
-    public bool isStartState = false;
+    const int DataSizeBuf = 6; // DataSize를 받는데 필요한 크기
+    private byte[] recvBuffer; // 받을 버퍼
+    g_DataSize recvDataSize; // 누가, 얼마나, 어떤 타입을 보내는지 미리 받을 곳
+    g_DataSize sendDataSize; // send하기 전에 미리 내가 얼마나, 어떤 타입을 보낼지 넣어두는 곳
+    g_Message g_message; // 메세지 받는 곳
+    g_Transform g_transform; //트렌스폼 받는 곳
+    public g_ReadySet g_readySet; // 준비된 플레이어 정보 받는 곳(종족, 팀정보, 플레이어 번호)
+    public bool isStartState = false; // 모든 준비 완료 게임 스타트?
     //NetWork netWork;
     // 접속할 곳의 IP주소.
     private string m_address = "127.0.0.1";
 
     // 접속할 곳의 포트 번호.
     private const int m_port = 9000;
-    const int BufSize = 1024;
-    int mPacketNumTransform = 0;
+    const int BufSize = 256;
+    int mPacketNumTransform = 0; // 받는 패킷 트렌스폼 번호
 
-    bool isRecvSizeState = true;
+    bool isRecvSizeState = true; // g_DataSize을 받을 상태인가?
 
-    GameObject MoveSynchronization;
-    MoveSynchronization MoveSyncComponent;
+    // GameObject MoveSynchronization; // 위치동기화 객체 가져올 곳
+    // MoveSynchronization MoveSyncComponent; // 위치동기화 객체에 딸린 컴포넌트
 
-    GameObject InitCharacter;
-    InitializationCharacter InitComponent;
+    // GameObject InitCharacter; // 캐릭터 생성 객체
+    // InitializationCharacter InitComponent; // 캐릭터 생성 객체에 딸린 컴포넌트
 
-    public byte[] ReSizeBuffer(ref byte[] sourceBuffer, int reSize)
+    #region MoveSynchronization 을 위한 프로퍼티
+    Vector3 newPosition;
+    Vector3 newRotation;
+    Vector3 newScal;
+    bool isNewTransform = false;
+    int targetPK = -1;
+
+    public Vector3 getNewPosition() { return newPosition; }
+    public Vector3 getNewRotation() { return newRotation; }
+    public Vector3 getNewScal() { return newScal; }
+    public bool getIsNewTransform() { return isNewTransform; }
+    public void setFalseNewTransform() { isNewTransform = false; }
+    public int getTargetPK() { return targetPK; }
+    #endregion
+    
+
+    // 받은 크기만큼 버퍼를 딱 맞춤.
+    private byte[] ReSizeBuffer(ref byte[] sourceBuffer, int reSize)
     {
         byte[] newBuffer = new byte[reSize];
         Array.Copy(sourceBuffer, newBuffer, reSize);
         return newBuffer;
     }
 
-    public void BeginConnect()
+    private void BeginConnect()
     {
         try
         {
@@ -66,7 +82,7 @@ public class HeroesNetWorkView : MonoBehaviour
         }
     }
 
-    public void DoInit()
+    private void DoInit()
     {
         Debug.Log("DoInit 호출");
         clientSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -80,10 +96,10 @@ public class HeroesNetWorkView : MonoBehaviour
             // 보류중인 연결을 완성
             Socket tempSock = (Socket)IAR.AsyncState;
             IPEndPoint svrEP = (IPEndPoint)tempSock.RemoteEndPoint;
-            Debug.Log("서버로 접속 성공 : " + svrEP.Address);
             tempSock.EndConnect(IAR);
+            Debug.Log("서버로 접속 성공 : " + svrEP.Address);
             cbSock = tempSock;
-            cbSock.BeginReceive(this.recvBuffer, 0, 6, SocketFlags.None, new AsyncCallback(OnReceiveCallBack), cbSock);
+            cbSock.BeginReceive(this.recvBuffer, 0, DataSizeBuf, SocketFlags.None, new AsyncCallback(OnReceiveCallBack), cbSock);
         }
         catch (SocketException se)
         {
@@ -94,14 +110,8 @@ public class HeroesNetWorkView : MonoBehaviour
             }
         }
     }
-
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
     private void SendByteSize(int clientNum, int size, g_DataType type)
     {
         try
@@ -112,11 +122,9 @@ public class HeroesNetWorkView : MonoBehaviour
                 sendDataSize.clientNum = clientNum;
                 sendDataSize.size = size;
                 sendDataSize.type = type;
-              //Debug.Log("보내기 = " + sendDataSize.size);
                 MemoryStream sendMS = new MemoryStream();
                 Serializer.Serialize(sendMS, sendDataSize); // MemoryStream sendMS에 Serialize값 담기
                 byte[] buffer = sendMS.ToArray(); // sendMS
-              //Debug.Log("Bufffffffffffffffff = " + buffer.Length);
                 clientSock.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(SendCallBack), sendDataSize);
             }
         }
@@ -126,6 +134,19 @@ public class HeroesNetWorkView : MonoBehaviour
         }
     }
 
+    private void copyTransformToG_Transform(ref g_Transform target, ref Transform source)
+    {
+        target.position.x = source.position.x;
+        target.position.y = source.position.y;
+        target.position.z = source.position.z;
+        target.rotation.x = source.rotation.x;
+        target.rotation.y = source.rotation.y;
+        target.rotation.z = source.rotation.z;
+        target.scale.x = source.localScale.x;
+        target.scale.y = source.localScale.y;
+        target.scale.z = source.localScale.z;
+    }
+
     public void SendByteTransform(Transform tr)
     {
         try
@@ -133,13 +154,17 @@ public class HeroesNetWorkView : MonoBehaviour
             /* 연결 성공시 */
             if (clientSock.Connected)
             {
-                if (mPacketNumTransform >= 100)
+                if (mPacketNumTransform >= 10)
                 {
                     mPacketNumTransform = 0;
+                }else
+                {
+                    mPacketNumTransform++;
                 }
                 g_Transform g_Tr = new g_Transform();
                 g_Tr.packetNum = mPacketNumTransform;
-                MoveSyncComponent.copyTransformToG_Transform(ref g_Tr, ref tr);
+                // g_Transform에 값 채우기
+                copyTransformToG_Transform(ref g_Tr, ref tr);
 
                 MemoryStream sendStream = new MemoryStream();
                 Serializer.Serialize(sendStream, g_Tr);
@@ -187,26 +212,11 @@ public class HeroesNetWorkView : MonoBehaviour
     private void SendCallBack(IAsyncResult IAR)
     {
         g_DataSize dataSize = (g_DataSize)IAR.AsyncState;
-       // Debug.Log("전송 완료 CallBack dataSize.size : " + dataSize.size);
-
-        //switch(dataSize.type)
-        //{
-        //    case g_DataType.TRANSFORM:
-        //        SendByteTransform(player.transform);
-        //        break;
-        //    case g_DataType.MESSAGE:
-        //        break;
-        //    default:
-        //        break;
-        //}
-
-        
     }
     private void SendCallBackTransform(IAsyncResult IAR)
     {
         g_Transform dataTr = (g_Transform)IAR.AsyncState;
     //    Debug.Log("전송 완료 CallBack position.x : " + dataTr.position.x);
-
     }
 
     private void SendCallBackMessage(IAsyncResult IAR)
@@ -217,102 +227,110 @@ public class HeroesNetWorkView : MonoBehaviour
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
     /*----------------------*
      * ##### CallBack ##### *
      *  Receive             *
      *----------------------*/
+    // 받은 데이터가 g_DataSize일 경우 호출하는 함수(받은 크기)
+    private void recvDataSizeState(int nReadSize)
+    {
+        //string message = new UTF8Encoding().GetString(recvBuffer, 0, nReadSize);
+        byte[] reSizeBuffer = ReSizeBuffer(ref recvBuffer, nReadSize); // 버퍼 크기를 받은만큼 정확히 맞춤
+        MemoryStream recvMS = new MemoryStream(reSizeBuffer);
+
+        recvDataSize = Serializer.Deserialize<g_DataSize>(recvMS); // 디시리얼라이즈(누가, 얼만큼, 어떤타입) 확보완료
+        this.Receive(recvDataSize.size);  // 다음 받을 만큼 받기
+        isRecvSizeState = false;
+    }
+    // 받을 데이터가 ReadySet 일 경우
+    private void recvReadySetState(MemoryStream recvStream)
+    {
+        g_readySet = Serializer.Deserialize<g_ReadySet>(recvStream);
+        isStartState = true;
+        Debug.Log("start...");
+    }
+    // 약속을 정하는 상태일 경우
+    private void recvProtocolState(MemoryStream recvStream)
+    {
+        g_message = Serializer.Deserialize<g_Message>(recvStream);
+        Debug.Log("받은 PROTOCOL = " + g_message.message);
+        if (-1 == MyClientNum)
+        {
+            string strClientNum = g_message.message;
+            MyClientNum = int.Parse(strClientNum);
+            Debug.Log("나의 번호 부여 완료 = " + MyClientNum);
+        }
+    }
+    // 메세지 받는 상태일 경우
+    private void recvMessageState(MemoryStream recvStream)
+    {
+        g_message = Serializer.Deserialize<g_Message>(recvStream);
+        Debug.Log("받은 메시지 = " + g_message.message);
+    }
+    // 트랜스폼 받는 상태일 경우
+    private void recvTransformState(MemoryStream recvStream)
+    {
+        g_transform = Serializer.Deserialize<g_Transform>(recvStream);
+        int pkNum = recvDataSize.clientNum; // 누가 보낸 트랜스폼인지 확인
+        Debug.Log("pkNUm = " + pkNum);
+        if (pkNum != MyClientNum)// 내가 보낸 트랜스폼이 아니고 캐릭터가 초기화 된 상태이면
+        {
+            newPosition.x = g_transform.position.x;
+            newPosition.y = g_transform.position.y;
+            newPosition.z = g_transform.position.z;
+
+            newRotation.x = g_transform.rotation.x;
+            newRotation.y = g_transform.rotation.y;
+            newRotation.z = g_transform.rotation.z;
+
+            newScal.x = g_transform.scale.x;
+            newScal.y = g_transform.scale.y;
+            newScal.z = g_transform.scale.z;
+            isNewTransform = true;
+            targetPK = pkNum;
+        }
+    }
+
     private void OnReceiveCallBack(IAsyncResult IAR)
     {
         try
         {
-           // Debug.Log("OnReceiveCallBack 호출");
             Socket tempSock = (Socket)IAR.AsyncState;
-            int nReadSize = tempSock.EndReceive(IAR);
-
-           // int s = nextDataSize.size;
-          //  Debug.Log("!!!!!!!!recvDataSize.size = " + s);
-            //Debug.Log("!!!!!!!!nReadSize = " + nReadSize);
-          //  Debug.Log("=========과녕 타입은 = " + nextDataSize.type);
-            if (nReadSize == 6 && isRecvSizeState)
+            int nReadSize = tempSock.EndReceive(IAR); // BeginReceive호출에서 정해진 크기만큼 데이터 받기
+            if (nReadSize == DataSizeBuf && isRecvSizeState) // 받은 크기가 g_DataSize 만하고(6바이트) g_DataSize 받을 상태인가?
             {
-                //string message = new UTF8Encoding().GetString(recvBuffer, 0, nReadSize);
-                byte[] reSizeBuffer = ReSizeBuffer(ref recvBuffer, nReadSize);
-                MemoryStream recvMS = new MemoryStream(reSizeBuffer);
-                
-                recvDataSize = Serializer.Deserialize<g_DataSize>(recvMS);
-               // Debug.Log("서버로 데이터 수신 : " + recvDataSize.size);
-               // Debug.Log("recvDataSize.size = " + recvDataSize.size);
-                nextDataSize = recvDataSize;
-                this.Receive(nextDataSize.size);
-                isRecvSizeState = false;
-                return; // if문을 빠져나가서 또 Receive을 호출 하지 않기 위해 함수를 종료 시킴
+                recvDataSizeState(nReadSize);
+                return; // 함수를 종료
             }
-            else if(nReadSize == nextDataSize.size && isRecvSizeState == false)
+            else if(nReadSize == recvDataSize.size && isRecvSizeState == false) // 받을 크기만큼이고, 진짜 데이터를 받을 상태이면
             {
-                //Debug.Log("if문 안");
-               // Debug.Log("과녕 타입은 = " + nextDataSize.type);
-                
-                if(nextDataSize == null)
-                {
-                    Debug.Log("nextDataSize = null");
-                    return;
-                }
                 // GameObject targetObj = null;
                 //targetObj = players[recvDataSize.clientNum]; //GameObject.FindGameObjectWithTag(recvDataSize.clientNum.ToString());
                 byte[] reSizeBuffer = ReSizeBuffer(ref recvBuffer, nReadSize);
                 MemoryStream recvStream = new MemoryStream(reSizeBuffer);
-
-                switch (nextDataSize.type)
+                // 받을 타입에 따른 디시리얼라이즈
+                switch (recvDataSize.type)
                 {
                     case g_DataType.READYSET:
-                        g_readySet = Serializer.Deserialize<g_ReadySet>(recvStream);
-                        isStartState = true;
-                        Debug.Log("start...");
+                        recvReadySetState(recvStream);
                         break;
                     case g_DataType.PROTOCOL:
-                        g_message = Serializer.Deserialize<g_Message>(recvStream);
-                        Debug.Log("받은 PROTOCOL = " + g_message.message);
-                        if (-1 == MyClientNum)
-                        {
-                            string strClientNum = g_message.message;
-                            MyClientNum = int.Parse(strClientNum);
-                            Debug.Log("나의 번호 부여 완료 = " + MyClientNum);
-                        }
+                        recvProtocolState(recvStream);
                         break;
                     case g_DataType.MESSAGE:
-                        g_message = Serializer.Deserialize<g_Message>(recvStream);
-                        Debug.Log("받은 메시지 = " + g_message.message);
+                        recvMessageState(recvStream);
                         break;
                     case g_DataType.TRANSFORM:
-                        g_transform = Serializer.Deserialize<g_Transform>(recvStream);
-                        int pkNum = nextDataSize.clientNum;
-                        if (pkNum != MyClientNum && InitComponent.isInitCharacter)
-                        {
-                           // GameObject player = InitComponent.PlayerArray[pkNum];
-
-                            MoveSyncComponent.MoveCharacter(pkNum, ref g_transform);
-                        }
-                        //Debug.Log("받은 x위치 = " + g_transform.position.x);
-                        //Vector3 newPosition = new Vector3(g_transform.position.x, g_transform.position.y, g_transform.position.z);
-                        //Vector3 newRotation = new Vector3(g_transform.rotation.x, g_transform.rotation.y, g_transform.rotation.z);
-                        //Vector3 newScale = new Vector3(g_transform.scale.x, g_transform.scale.y, g_transform.scale.z);
-                        //otherPlayer.transform.Translate(newPosition);
-                        ////otherPlayer.transform.position = Vector3.MoveTowards(otherPlayer.transform.position, newPosition, 0.0f);
-                        //otherPlayer.transform.Rotate(newRotation); // rotation(Quaternion.Euler(newRotation));
-                        //Debug.Log("#############위치 이동 성공###############");
+                        recvTransformState(recvStream);
                         break;
                     default:
-
+                        Debug.Log("정의 되어 있지 않은 타입 받음");
                         break;
                 }
                 isRecvSizeState = true; // 서버로부터 사이즈 받는 상태 true로 바꿈
-                recvDataSize = null;
+                recvDataSize = null; // 받을 데이터 초기화
             }
-            Receive(6);
+            Receive(DataSizeBuf); // 진짜 데이터를 받았으니 이제 다시 얼마큼 받아야하는지 g_DataSize를 받을 차례
         }
         catch (SocketException se)
         {
@@ -323,7 +341,7 @@ public class HeroesNetWorkView : MonoBehaviour
         }
     }
 
-    public void Receive(int recvSize)
+    private void Receive(int recvSize)
     {
        // Debug.Log("Receive 호출" + recvSize);
         cbSock.BeginReceive(this.recvBuffer, 0, recvSize, SocketFlags.None, new AsyncCallback(OnReceiveCallBack), cbSock);
@@ -331,36 +349,33 @@ public class HeroesNetWorkView : MonoBehaviour
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
     void Awake()
     {
-        MoveSynchronization = GameObject.FindGameObjectWithTag("MoveSynchronization");
-        MoveSyncComponent = MoveSynchronization.GetComponent<MoveSynchronization>();
+        newPosition = new Vector3();
+        newRotation = new Vector3();
+        newScal = new Vector3();
 
-        InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
-        InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
+        recvBuffer = new byte[BufSize];
+        sendDataSize = new g_DataSize();
+
+        DoInit();
+        // 위치 동기화 객체 가져오고
+        //MoveSynchronization = GameObject.FindGameObjectWithTag("MoveSynchronization");
+        //MoveSyncComponent = MoveSynchronization.GetComponent<MoveSynchronization>();
+        // 캐릭터 생성 객체 가져오고
+        //InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
+        //InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
     }
 
     // Use this for initialization
     void Start()
     {
-        recvBuffer = new byte[BufSize];
-        sendDataSize = new g_DataSize();
-        nextDataSize = new g_DataSize();
-       // recvDataSize = new g_DataSize();
-        DoInit();
+        
         ////////
-        //Instantiate(player);
-        //Instantiate(otherPlayer);
-        //players = new GameObject[4];
         while(true)
         {
             if(clientSock.Connected)
             {
-                 
-             //   
                 break;
             }
         }

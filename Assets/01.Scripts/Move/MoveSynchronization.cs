@@ -14,12 +14,7 @@ public class MoveSynchronization : MonoBehaviour {
     public static GameObject MyPlayer;
 
     Transform MyTr;
-    Vector3 newPosition;
-    Vector3 newRotation;
-    Vector3 newScal;
-
-    int targetPK = 0;
-    bool isNewTransform = false;
+    
     //public struct TransformStruct
     //{
     //   public Vector3 newPosition;
@@ -35,14 +30,11 @@ public class MoveSynchronization : MonoBehaviour {
 
     void Awake()
     {
+        InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
+        InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
         startNetWork = GameObject.FindGameObjectWithTag("StartNetWork");
         // MyClientNum = startNetWork.GetComponent<StartAsyncNetWork>().getMyClientNum();
         netWork = startNetWork.GetComponent<HeroesNetWorkView>();
-        InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
-        InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
-        newPosition = new Vector3();
-        newRotation = new Vector3();
-        newScal = new Vector3();
     }
 
     // Use this for initialization
@@ -75,53 +67,14 @@ public class MoveSynchronization : MonoBehaviour {
         }
     }
 
-    public void copyTransformToG_Transform(ref g_Transform target, ref Transform source)
-    {
-        target.position.x = source.position.x;
-        target.position.y = source.position.y;
-        target.position.z = source.position.z;
-        target.rotation.x = source.rotation.x;
-        target.rotation.y = source.rotation.y;
-        target.rotation.z = source.rotation.z;
-        target.scale.x = source.localScale.x;
-        target.scale.y = source.localScale.y;
-        target.scale.z = source.localScale.z;
-    }
-
-
-
-    public void MoveCharacter(int pkNum, ref g_Transform source)
-    {
-
-        newPosition.x = source.position.x;
-        newPosition.y = source.position.y;
-        newPosition.z = source.position.z;
-
-        newRotation.x = source.rotation.x;
-        newRotation.y = source.rotation.y;
-        newRotation.z = source.rotation.z;
-
-        newScal.x = source.scale.x;
-        newScal.y = source.scale.y;
-        newScal.z = source.scale.z;
-
-     //   Debug.Log("앙2");
-     //   Debug.Log("앙3 source.position.x = " + source.position.x);
-
-        targetPK = pkNum;
-        isNewTransform = true;
-    }
-
     // Update is called once per frame
     void Update () {
-
-        if(isNewTransform)
+        if (netWork.getIsNewTransform() && InitComponent.isInitCharacter)
         {
-            InitComponent.PlayerArray[targetPK].transform.position = newPosition;
-            isNewTransform = false;
+            Debug.Log("targetPK = " + netWork.getTargetPK() + " // newPosition = " + netWork.getNewPosition());
+            InitComponent.PlayerArray[netWork.getTargetPK()].transform.position = netWork.getNewPosition();
+            netWork.setFalseNewTransform();
         }
-
-
 
     }
 }
