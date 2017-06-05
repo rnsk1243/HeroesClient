@@ -6,12 +6,12 @@ using CommandKinds;
 
 public class InitializationCharacter : MonoBehaviour {
 
-    const int servantTofu = 1;
-    const int servantMando = 2;
-    const int servantNone = 0;
-    const int RedTeam = 1;
-    const int BlueTeam = 2;
-    const int NoneTeam = 0;
+    const int servantTofu = 1; // 두부캐릭
+    const int servantMando = 2; // 만두캐릭
+    const int servantNone = 0; // 캐릭이 정해지지 않음
+    const int RedTeam = 1; // 레드 팀
+    const int BlueTeam = 2; // 블루 팀
+    const int NoneTeam = 0; // 팀이 정해지지 않음
 
 
     GameObject startNetWork;

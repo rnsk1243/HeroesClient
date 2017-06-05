@@ -20,18 +20,6 @@ public class MoveSynchronization : MonoBehaviour {
 
     int targetPK = 0;
     bool isNewTransform = false;
-    //public struct TransformStruct
-    //{
-    //   public Vector3 newPosition;
-    //   public Quaternion newRotation;
-    //   public Vector3 newScale;
-    //   public TransformStruct(Vector3 pos, Vector3 rot, Vector3 scal)
-    //    {
-    //        newPosition = new Vector3(pos.x, pos.y, pos.z);
-    //        newRotation = Quaternion.Euler(rot.x, rot.y, rot.z);
-    //        newScale = new Vector3(scal.x, scal.y, scal.z);
-    //    }
-    //}
 
     void Awake()
     {
@@ -117,6 +105,7 @@ public class MoveSynchronization : MonoBehaviour {
 
         if(isNewTransform)
         {
+            Debug.Log("targetPK = " + targetPK + " // 위치 = " + newPosition);
             InitComponent.PlayerArray[targetPK].transform.position = newPosition;
             isNewTransform = false;
         }
