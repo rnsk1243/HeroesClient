@@ -2,13 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
+using MyNetWorkView;
 
 public class MoveSynchronization : MonoBehaviour {
 
     GameObject InitCharacter;
     InitializationCharacter InitComponent;
-    GameObject startNetWork;
+   // GameObject startNetWork;
     HeroesNetWorkView netWork;
     
     public static GameObject MyPlayer;
@@ -23,9 +23,9 @@ public class MoveSynchronization : MonoBehaviour {
 
     void Awake()
     {
-        startNetWork = GameObject.FindGameObjectWithTag("StartNetWork");
+        //startNetWork = GameObject.FindGameObjectWithTag("StartNetWork");
         // MyClientNum = startNetWork.GetComponent<StartAsyncNetWork>().getMyClientNum();
-        netWork = startNetWork.GetComponent<HeroesNetWorkView>();
+        netWork = HeroesNetWorkView.GetInstance();
         InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
         InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
         newPosition = new Vector3();
@@ -53,7 +53,7 @@ public class MoveSynchronization : MonoBehaviour {
             yield return new WaitForSeconds(1.0f);
         }
     }
-
+    
     IEnumerator MoveSyncSend()
     {
         while (true)
@@ -80,7 +80,6 @@ public class MoveSynchronization : MonoBehaviour {
 
     public void MoveCharacter(int pkNum, ref g_Transform source)
     {
-
         newPosition.x = source.position.x;
         newPosition.y = source.position.y;
         newPosition.z = source.position.z;
@@ -92,10 +91,6 @@ public class MoveSynchronization : MonoBehaviour {
         newScal.x = source.scale.x;
         newScal.y = source.scale.y;
         newScal.z = source.scale.z;
-
-     //   Debug.Log("앙2");
-     //   Debug.Log("앙3 source.position.x = " + source.position.x);
-
         targetPK = pkNum;
         isNewTransform = true;
     }
@@ -105,7 +100,7 @@ public class MoveSynchronization : MonoBehaviour {
 
         if(isNewTransform)
         {
-            Debug.Log("targetPK = " + targetPK + " // 위치 = " + newPosition);
+         //   Debug.Log("targetPK = " + targetPK + " // 위치 = " + newPosition);
             InitComponent.PlayerArray[targetPK].transform.position = newPosition;
             isNewTransform = false;
         }
