@@ -8,7 +8,6 @@ public class MoveSynchronization : MonoBehaviour {
 
     GameObject InitCharacter;
     InitializationCharacter InitComponent;
-   // GameObject startNetWork;
     HeroesNetWorkView netWork;
     
     public static GameObject MyPlayer;
@@ -23,8 +22,6 @@ public class MoveSynchronization : MonoBehaviour {
 
     void Awake()
     {
-        //startNetWork = GameObject.FindGameObjectWithTag("StartNetWork");
-        // MyClientNum = startNetWork.GetComponent<StartAsyncNetWork>().getMyClientNum();
         netWork = HeroesNetWorkView.GetInstance();
         InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
         InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
@@ -104,8 +101,5 @@ public class MoveSynchronization : MonoBehaviour {
             InitComponent.PlayerArray[targetPK].transform.position = newPosition;
             isNewTransform = false;
         }
-
-
-
     }
 }

@@ -50,8 +50,7 @@ namespace NamespaceErrorHandler
         {
             Debug.Log("RecvBuffer 비우기");
             byte[] tempBuf = new byte[ConstKinds.ConstKind.RecvBufferFlushSize];
-            int k = Sock.Receive(tempBuf);
-            Debug.Log("k = " + k);
+            Sock.Receive(tempBuf);
         }
     }
 }

@@ -8,20 +8,16 @@ using MyNetWorkView;
 
 public class InitializationCharacter : MonoBehaviour {
 
-   // GameObject startNetWork;
     HeroesNetWorkView netWork;
 
     public GameObject tofu;
     public GameObject mando;
 
-    //public List<GameObject> PlayerList = new List<GameObject>();
     public GameObject[] PlayerArray;
     public bool isInitCharacter = false;
 
     void Awake()
     {
-        //startNetWork = GameObject.FindGameObjectWithTag("StartNetWork");
-        // MyClientNum = startNetWork.GetComponent<StartAsyncNetWork>().getMyClientNum();
         netWork = HeroesNetWorkView.GetInstance();
         PlayerArray = new GameObject[4];
     }
@@ -40,10 +36,10 @@ public class InitializationCharacter : MonoBehaviour {
             {
                 Debug.Log("나 클라이언트 번호 = " + netWork.MyClientNum);
                 netWork.SendByteMessage(Command.EnterRoom, g_DataType.COMMAND); // 방 입장 명령
-                netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
-                //netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
-                netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
-                //netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
+                //netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
+                netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
+                //netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
+                netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
                 StartCoroutine("CreateCharacter"); // 트랜스폼 코루틴 실행
                 break;
             }
@@ -110,9 +106,4 @@ public class InitializationCharacter : MonoBehaviour {
             yield return new WaitForSeconds(3.0f);
         }
     }
-
-    // Update is called once per frame
-    void Update () {
-		
-	}
 }
