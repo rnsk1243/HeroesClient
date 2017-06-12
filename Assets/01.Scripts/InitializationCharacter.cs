@@ -2,12 +2,16 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CommandKinds;
-using ConstKinds;
+using NamespaceCommandKinds;
+using NamespaceConstKinds;
 using MyNetWorkView;
+using System.Threading;
 
-public class InitializationCharacter : MonoBehaviour {
+public class InitializationCharacter {
 
+    private static InitializationCharacter instance;
+
+    Initialization init;
     HeroesNetWorkView netWork;
 
     public GameObject tofu;
@@ -16,94 +20,86 @@ public class InitializationCharacter : MonoBehaviour {
     public GameObject[] PlayerArray;
     public bool isInitCharacter = false;
 
+    public static InitializationCharacter GetInstance()
+    {
+        if (instance == null)
+        {
+            Debug.Log("InitializationCharacter 생성");
+            instance = new InitializationCharacter();
+            return instance;
+        }
+        else
+        {
+            return instance;
+        }
+    }
+    private InitializationCharacter()
+    {
+        Awake();
+        Start();
+    }
+
     void Awake()
     {
+        Debug.Log("InitializationCharacter Awake호출");
         netWork = HeroesNetWorkView.GetInstance();
-        PlayerArray = new GameObject[4];
+        PlayerArray = new GameObject[ConstKind.EnterRoomPeopleLimit];
     }
 
     // Use this for initialization
     void Start () {
-        StartCoroutine("ReadCheck");
+        Debug.Log("InitializationCharacter start");
+        //StartCoroutine("ReadCheck");
+        Thread Read = new Thread(ReadCheck);
+        Read.Start();
     }
 
-    IEnumerator ReadCheck()
+    void ReadCheck()
     {
         Debug.Log("클라이언트 번호 받는 중...");
         while (true)
         {
             if (-1 != netWork.MyClientNum)
             {
-                Debug.Log("나 클라이언트 번호 = " + netWork.MyClientNum);
+                //Debug.Log("나 클라이언트 번호 = " + netWork.MyClientNum);
                 netWork.SendByteMessage(Command.EnterRoom, g_DataType.COMMAND); // 방 입장 명령
-                //netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
-                netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
-                //netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
-                netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
-                StartCoroutine("CreateCharacter"); // 트랜스폼 코루틴 실행
+                netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
+                //netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
+                netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
+                //netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
+                //StartCoroutine("CreateCharacter"); // 트랜스폼 코루틴 실행
+                Thread ThCreateCharacter = new Thread(CreateCharacter);
+                ThCreateCharacter.Start();
                 break;
             }
-            yield return new WaitForSeconds(1.0f);
+            //yield return new WaitForSeconds(1.0f);
         }
+        return;
     }
 
-    void instantiatePlayer(g_CreateCharaterInfo player)
-    {
-        int pk = player.pkNum;
-        int servant = player.servant;
-        int team = player.team;
-
-        GameObject obj = null;
-
-        switch(servant)
-        {
-            case ConstKind.servantTofu:
-                obj = Instantiate(tofu);
-                break;
-            case ConstKind.servantMando:
-                obj = Instantiate(mando);
-                break;
-            case ConstKind.servantNone:
-                Debug.Log("Error 종족 받아오지 않았음!");
-                return;
-            default:
-                Debug.Log("Error 신규캐릭? 오류!!!!!!!!!!");
-                return;
-        }
-
-        if(obj == null)
-        {
-            Debug.Log("캐릭터 생성 실패");
-            return;
-        }
-        obj.tag = pk.ToString();
-        //PlayerList.Add(obj);
-        PlayerArray[pk] = obj;
-    }
-
-    IEnumerator CreateCharacter()
+    void CreateCharacter()
     {
         Debug.Log("플레이어를 기다리는 중...");
         while (true)
         {
             if (netWork.isStartState)
             {
-                instantiatePlayer(netWork.g_readySet.player1);
-                instantiatePlayer(netWork.g_readySet.player2);
-                instantiatePlayer(netWork.g_readySet.player3);
-                instantiatePlayer(netWork.g_readySet.player4);
+                init.instantiatePlayer(netWork.g_readySet.player1);
+                init.instantiatePlayer(netWork.g_readySet.player2);
+                init.instantiatePlayer(netWork.g_readySet.player3);
+                init.instantiatePlayer(netWork.g_readySet.player4);
                 isInitCharacter = true;
-                for(int i=0; i<3; i++)
-                {
-                    Debug.Log(i + " 번 tag = " + PlayerArray[i].tag);
-                }
+                //for(int i=0; i<3; i++)
+                //{
+                //    Debug.Log(i + " 번 tag = " + PlayerArray[i].tag);
+                //}
                 break;
             }
             else
             {
                 netWork.SendByteMessage("start", g_DataType.COMMAND);
             }
-            yield return new WaitForSeconds(3.0f);
         }
+        return;
     }
 }
