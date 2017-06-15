@@ -11,93 +11,127 @@ using ProtoBuf;
 using System.Collections;
 using ConstKinds;
 using NamespaceErrorHandler;
+using System.Threading;
+using NamespacePostbox;
+using CommandKinds;
 
-namespace MyNetWorkView
+namespace NamespaceHeroesNetWorkView
 {
-    public class HeroesNetWorkView
+    class HeroesNetWorkView
     {
         private static HeroesNetWorkView instance;
-        // 통신용 변수.
-        private Socket clientSock;  /* client Socket */
-        public int MyClientNum = -1; // 클라이언트 간의 구분 번호
-        private Socket cbSock;   /* client Async Callback Socket */
-
-
+        public static int MyClientNum = -1; // 클라이언트 간의 구분 번호
         private byte[] recvBuffer; // 받을 버퍼
-        //private byte[] recvTrBuffer; // Tr 받을 버퍼
-        //private byte[] recvDataInfoBuffer; // dataSize 받을 버퍼
+        bool isRecvSizeState = true; // g_DataSize을 받을 상태인가?
         g_DataSize recvDataSize; // 누가, 얼마나, 어떤 타입을 보내는지 미리 받을 곳
         g_DataSize sendDataSize; // send하기 전에 미리 내가 얼마나, 어떤 타입을 보낼지 넣어두는 곳
-        g_Message g_message; // 메세지 받는 곳
-        g_Transform g_transform; //트렌스폼 받는 곳
-        public g_ReadySet g_readySet; // 준비된 플레이어 정보 받는 곳(종족, 팀정보, 플레이어 번호)
-        public bool isStartState = false; // 모든 준비 완료 게임 스타트?
-                                          //NetWork netWork;
+        g_ReadySet g_readySet; // 준비된 플레이어 정보 받는 곳(종족, 팀정보, 플레이어 번호)
+        g_Message g_message; // 메세지 받는 곳 
+        g_Transform g_transform; //트렌스폼 받는 곳v족, 팀정보, 플레이어 번호)
+        private Socket clientSock;  /* client Socket */
+        private Thread initThread;
+        private Thread recvThread;
+        private Thread sendThread;
+        private Postbox postbox;    //메세지 큐를 관리하는 우편함
+        int CurRecvDataSize;
+        // 클라이언트 상태
+        ClientState State;
 
-        int mPacketNumTransform = 0; // 받는 패킷 트렌스폼 번호
-
-        bool isRecvSizeState = true; // g_DataSize을 받을 상태인가?
-
-        GameObject MoveSynchronization;
-        MoveSynchronization MoveSyncComponent;
-
-        GameObject InitCharacter;
-        InitializationCharacter InitComponent;
-
-        //bool isTransformDeserialize = false;
-
-        public static HeroesNetWorkView GetInstance()
+        //싱글턴 인스턴스 반환
+        public static HeroesNetWorkView GetInstance
         {
-            if (instance == null)
+            get
             {
-                Debug.Log("NetworkView 생성");
-                instance = new HeroesNetWorkView();
-                return instance;
-            }
-            else
-            {
+                if (instance == null)
+                    instance = new HeroesNetWorkView();
+
                 return instance;
             }
         }
 
         private HeroesNetWorkView()
         {
-            Awake();
-            Start();
-        }
-
-        void Awake()
-        {
-            MoveSynchronization = GameObject.FindGameObjectWithTag("MoveSynchronization");
-            MoveSyncComponent = MoveSynchronization.GetComponent<MoveSynchronization>();
-
-            InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
-            InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
+            Debug.Log("HeroesNetWorkView 초기화");
+            State = ClientState.Connecting;
+            postbox = Postbox.GetInstance;
+            CurRecvDataSize = 0;
             recvBuffer = new byte[ConstKind.BufSize];
-            //recvTrBuffer = new byte[ConstKind.BufSize];
-            //recvDataInfoBuffer = new byte[ConstKind.BufSize];
             sendDataSize = new g_DataSize();
+            initThread = new Thread(new ThreadStart(init));
+            recvThread = new Thread(new ThreadStart(recvnThreadWork));            
+            sendThread = new Thread(new ThreadStart(sendnThreadWork));
+            initThread.Start();
         }
 
-        // Use this for initialization
+        private void init()
+        {
+            Debug.Log("NetWorkView초기화 시작");
+            try
+            {
+                Debug.Log("Init()");
+                while(true)
+                {
+                    switch (State)
+                    {
+                        case ClientState.Connecting:
+                            Start();
+                            break;
+                        case ClientState.DistinguishCode:
+                            SetDistinguishCode();
+                            break;
+                        case ClientState.SendMyCharacter:
+                            Debug.Log("내가할 캐릭터 정보 보내기");
+                            postbox.PushSendData(g_DataType.COMMAND, Command.EnterRoom);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
+                            State = ClientState.RecvCharacter;
+                            break;
+                        case ClientState.RecvCharacter:
+                            postbox.PushSendData(g_DataType.COMMAND, Command.StartButton);
+                            break;
+                        case ClientState.AddComponent:
+                            postbox.PushRecvData(g_DataType.MESSAGE, "AddComponent");
+                            State = ClientState.GameStart;
+                            break;
+                        case ClientState.GameStart:
+                            Debug.Log("준비 완료");
+                            break;
+                    }
+                    if (State == ClientState.GameStart)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (Exception ep)
+            {
+                Debug.Log(ep.Message);
+                ErrorReset(ref clientSock);
+            }
+        }
+        #region 연결 관련
+
         void Start()
         {
             DoInit();
             while (true)
             {
+                Debug.Log("ddddddddddddd");
                 if (clientSock.Connected)
                 {
+                    State = ClientState.DistinguishCode;
+                    Request();// 스레드 시작
                     break;
                 }
             }
         }
-
-        // 받은 크기만큼 버퍼를 딱 맞춤.
-        private byte[] ReSizeBuffer(ref byte[] sourceBuffer, int reSize)
+        private void DoInit()
         {
-            byte[] newBuffer = new byte[reSize];
-            Array.Copy(sourceBuffer, newBuffer, reSize);
-            return newBuffer;
+            Debug.Log("DoInit 호출");
+            clientSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            this.BeginConnect();
         }
 
         private void BeginConnect()
@@ -114,13 +148,6 @@ namespace MyNetWorkView
             }
         }
 
-        private void DoInit()
-        {
-            Debug.Log("DoInit 호출");
-            clientSock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            this.BeginConnect();
-        }
-
         private void ConnectCallBack(IAsyncResult IAR)
         {
             try
@@ -130,8 +157,6 @@ namespace MyNetWorkView
                 IPEndPoint svrEP = (IPEndPoint)tempSock.RemoteEndPoint;
                 Debug.Log("서버로 접속 성공 : " + svrEP.Address);
                 tempSock.EndConnect(IAR);
-                cbSock = tempSock;
-                cbSock.BeginReceive(recvBuffer, 0, ConstKind.DataSizeBuf, SocketFlags.None, new AsyncCallback(OnReceiveCallBack), cbSock);
             }
             catch (SocketException se)
             {
@@ -142,7 +167,32 @@ namespace MyNetWorkView
                 }
             }
         }
+        // 서버에 요청(스레드 시작)
+        private void Request()
+        {
+            recvThread.Start();
+            sendThread.Start();
+        }
+
+        #endregion
+
+
+        // 내 구분 코드 요청과 받기
+        void SetDistinguishCode()
+        {
+            postbox.PushSendData(g_DataType.PROTOCOL, CommandKinds.Command.RequestDistinguishCode);
+        }
+
+        // 받은 크기만큼 버퍼를 딱 맞춤.
+        private byte[] ReSizeBuffer(ref byte[] sourceBuffer, int reSize)
+        {
+            byte[] newBuffer = new byte[reSize];
+            Array.Copy(sourceBuffer, newBuffer, reSize);
+            return newBuffer;
+        }
+
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        #region 직접 호출 금지 Send 관련
         private void SendByteSize(int clientNum, int size, g_DataType type)
         {
             try
@@ -150,13 +200,19 @@ namespace MyNetWorkView
                 /* 연결 성공시 */
                 if (clientSock.Connected)
                 {
+                    int sendSize = 0;
                     sendDataSize.clientNum = clientNum;
                     sendDataSize.size = size;
                     sendDataSize.type = type;
                     MemoryStream sendMS = new MemoryStream();
                     Serializer.Serialize(sendMS, sendDataSize); // MemoryStream sendMS에 Serialize값 담기
                     byte[] buffer = sendMS.ToArray(); // sendMS
-                    clientSock.BeginSend(buffer, 0, buffer.Length, SocketFlags.None, new AsyncCallback(SendCallBack), sendDataSize);
+                    while(true)
+                    {
+                       sendSize += clientSock.Send(buffer, 0, buffer.Length, SocketFlags.None);
+                        if (sendSize >= buffer.Length)
+                            break;
+                    }
                 }
             }
             catch (SocketException e)
@@ -164,34 +220,26 @@ namespace MyNetWorkView
                 Debug.Log("전송 에러 : " + e.Message);
             }
         }
-
-        public void SendByteTransform(Transform tr)
+        public void SendByteTransform(g_Transform g_Tr)
         {
             try
             {
                 /* 연결 성공시 */
                 if (clientSock.Connected)
                 {
-                    if (mPacketNumTransform >= 9)
-                    {
-                        mPacketNumTransform = 0;
-                    }
-                    else
-                    {
-                        mPacketNumTransform++;
-                    }
-                    g_Transform g_Tr = new g_Transform();
-                    g_Tr.packetNum = mPacketNumTransform;
-                    MoveSyncComponent.copyTransformToG_Transform(ref g_Tr, ref tr);
-
+                    int sendSize = 0;
                     MemoryStream sendStream = new MemoryStream();
                     Serializer.Serialize(sendStream, g_Tr);
-
                     byte[] buffer = sendStream.ToArray();
                     int size = buffer.Length;
 
                     SendByteSize(MyClientNum, size, g_DataType.TRANSFORM); // 사이즈 보내기
-                    clientSock.BeginSend(buffer, 0, size, SocketFlags.None, new AsyncCallback(SendCallBackTransform), g_Tr); // Tr 보내기
+                    while (true)
+                    {
+                        sendSize += clientSock.Send(buffer, 0, size, SocketFlags.None);
+                        if (sendSize >= size)
+                            break;
+                    }
                 }
             }
             catch (SocketException e)
@@ -199,12 +247,12 @@ namespace MyNetWorkView
                 Debug.Log("전송 에러 : " + e.Message);
             }
         }
-
         public void SendByteMessage(string message, g_DataType type)
         {
             //  Debug.Log("하하하");
             if (clientSock.Connected)
             {
+                int sendSize = 0;
                 //Debug.Log("메세지 보내기 시작");
                 g_Message g_ms = new g_Message();
                 g_ms.message = message;
@@ -216,50 +264,79 @@ namespace MyNetWorkView
                 int size = buffer.Length;
 
                 SendByteSize(MyClientNum, size, type); // 사이즈 보내기
-                clientSock.BeginSend(buffer, 0, size, SocketFlags.None, new AsyncCallback(SendCallBackMessage), g_ms); // message 보내기
+                while (true)
+                {
+                    sendSize += clientSock.Send(buffer, 0, buffer.Length, SocketFlags.None);
+                    if (sendSize >= buffer.Length)
+                        break;
+                }
             }
             else
             {
                 Debug.Log("서버와 연결되지 않음");
             }
         }
-
+        void sendData()
+        {
+            Debug.Log("sendThread!");
+            // 보낼 데이터 꺼내기
+            PostData sendData = new PostData(g_DataType.NULLDATA, 0, MyClientNum);
+            // 값 채우기
+            postbox.GetSendData(ref sendData);
+            
+            if (sendData.Type != g_DataType.NULLDATA)
+            {
+                switch (sendData.Type)
+                {
+                    case g_DataType.COMMAND:
+                        Debug.Log("보낼 데이타 = " + sendData.ClientNum + "//" + sendData.Type + "//" + (string)sendData.data);
+                        SendByteMessage((string)sendData.data, g_DataType.COMMAND);
+                        break;
+                    case g_DataType.MESSAGE:
+                        SendByteMessage((string)sendData.data, g_DataType.MESSAGE);
+                        break;
+                    case g_DataType.PROTOCOL:
+                        SendByteMessage((string)sendData.data, g_DataType.PROTOCOL);
+                        break;
+                    case g_DataType.READYSET:
+                        SendByteMessage((string)sendData.data, g_DataType.READYSET);
+                        break;
+                    case g_DataType.TRANSFORM:
+                        SendByteTransform((g_Transform)sendData.data);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        #endregion
+        // 서버 작업 진행
+        void sendnThreadWork()
+        {
+            while (true)
+            {
+                try
+                {
+                    sendData();
+                    Thread.Sleep(1700);
+                }
+                catch(Exception e)
+                {
+                    Debug.Log(e.Message);
+                }
+            }
+        }
         /*----------------------*
-         * ##### CallBack ##### *
-         *        Send          *
-         *----------------------*/
-        private void SendCallBack(IAsyncResult IAR)
-        {
-            g_DataSize dataSize = (g_DataSize)IAR.AsyncState;
-        }
-        private void SendCallBackTransform(IAsyncResult IAR)
-        {
-            g_Transform dataTr = (g_Transform)IAR.AsyncState;
-            //    Debug.Log("전송 완료 CallBack position.x : " + dataTr.position.x);
-        }
-
-        private void SendCallBackMessage(IAsyncResult IAR)
-        {
-            g_Message message = (g_Message)IAR.AsyncState;
-            //    Debug.Log("전송 완료 message = " + message.message);
-        }
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        /*----------------------*
-         * ##### CallBack ##### *
-         *  Receive             *
-         *----------------------*/
-
-        /*
-         * 다음 함수부분에 
-         MemoryStream recvStream = new MemoryStream(recvBytes); 을 함수마다 쓰고 있어서 공통으로 빼지 않은 이유는
-         파라미터로 byte[]을 받아 올바른 패킷이 왔는지 확인한 뒤에 MemoryStream recvStream을 만들기 위해서 임.
-         */
+        * ##### CallBack ##### *
+        *  Receive             *
+        *----------------------*/
+        #region 직접 호출 금지 Recv 관련
 
         // 받은 데이터가 g_DataSize일 경우 호출하는 함수(받은 크기)
         private void recvDataSizeState(int nReadSize, ref Socket socket)
         {
             // 버퍼 크기를 받은만큼 정확히 맞춤
-            Debug.Log("recvDataSize 호출");
+            //Debug.Log("recvDataSize 호출");
             byte[] reSizeBuffer = ReSizeBuffer(ref recvBuffer, nReadSize);
             MemoryStream recvMS = new MemoryStream(reSizeBuffer);
             recvDataSize = Serializer.Deserialize<g_DataSize>(recvMS); // 디시리얼라이즈(누가, 얼만큼, 어떤타입) 확보완료
@@ -270,20 +347,23 @@ namespace MyNetWorkView
         {
             MemoryStream recvStream = new MemoryStream(recvBytes);
             g_readySet = Serializer.Deserialize<g_ReadySet>(recvStream);
-            isStartState = true;
+            postbox.PushRecvData(g_DataType.READYSET, g_readySet);
             Debug.Log("start...");
+            State = ClientState.AddComponent;
         }
         // 약속을 정하는 상태일 경우
         private void recvProtocolState(ref byte[] recvBytes)
         {
             MemoryStream recvMS = new MemoryStream(recvBytes);
             g_message = Serializer.Deserialize<g_Message>(recvMS);
+            postbox.PushRecvData(g_DataType.PROTOCOL, g_message);
             Debug.Log("받은 PROTOCOL = " + g_message.message);
             if (-1 == MyClientNum)
             {
                 string strClientNum = g_message.message;
                 MyClientNum = int.Parse(strClientNum);
                 Debug.Log("나의 번호 부여 완료 = " + MyClientNum);
+                State = ClientState.SendMyCharacter;
             }
         }
         // 메세지 받는 상태일 경우
@@ -291,6 +371,7 @@ namespace MyNetWorkView
         {
             MemoryStream recvMS = new MemoryStream(recvBytes);
             g_message = Serializer.Deserialize<g_Message>(recvMS);
+            postbox.PushRecvData(g_DataType.MESSAGE, g_message);
             Debug.Log("받은 메시지 = " + g_message.message);
         }
         // 트랜스폼 받는 상태일 경우
@@ -298,73 +379,52 @@ namespace MyNetWorkView
         {
             MemoryStream recvStream = new MemoryStream(recvBytes);
             g_transform = Serializer.Deserialize<g_Transform>(recvStream);
-
-            int pkNum = recvDataSize.clientNum;
-            if (pkNum != MyClientNum && InitComponent.isInitCharacter)
-            {
-                MoveSyncComponent.MoveCharacter(pkNum, ref g_transform);
-            }
+            postbox.PushRecvData(g_DataType.TRANSFORM, g_transform, recvDataSize.clientNum);
             return true;
         }
 
-        private void OnReceiveCallBack(IAsyncResult IAR)
+        void recvSize()
         {
-            Socket tempSock = (Socket)IAR.AsyncState;
-            try
+            CurRecvDataSize = 0;
+            while (true)
             {
-                int nReadSize = tempSock.EndReceive(IAR);
-                if (nReadSize == ConstKind.DataSizeBuf && isRecvSizeState)
-                {
-                    recvDataSizeState(ConstKind.DataSizeBuf, ref tempSock);
-                    Receive(recvDataSize.size);  // 다음 받을 만큼 받기
-                    return; // if문을 빠져나가서 또 Receive을 호출 하지 않기 위해 함수를 종료 시킴
-                }
-                else if (nReadSize == recvDataSize.size && isRecvSizeState == false)// 받을 크기만큼이고, 진짜 데이터를 받을 상태이면
-                {
-                    //Debug.Log("recvDataSize.type = " + recvDataSize.type);
-                    // GameObject targetObj = null;
-                    //targetObj = players[recvDataSize.clientNum]; //GameObject.FindGameObjectWithTag(recvDataSize.clientNum.ToString());
-                    byte[] recvBytes = ReSizeBuffer(ref recvBuffer, nReadSize);
-                    switch (recvDataSize.type)
-                    {
-                        case g_DataType.READYSET:
-                            recvReadySetState(ref recvBytes);
-                            break;
-                        case g_DataType.PROTOCOL:
-                            recvProtocolState(ref recvBytes);
-                            break;
-                        case g_DataType.MESSAGE:
-                            recvMessageState(ref recvBytes);
-                            break;
-                        case g_DataType.TRANSFORM:
-                            recvTransformState(ref recvBytes);
-                            break;
-                        default:
-                            Debug.Log("정의 되어 있지 않은 타입 받음");
-                            break;
-                    }
-                    isRecvSizeState = true; // 서버로부터 사이즈 받는 상태 true로 바꿈
-                    recvDataSize = null; // 받을 데이터 초기화
-                }
-                #region // 예외처리
-                else if (nReadSize != recvDataSize.size && isRecvSizeState == false)
-                {
-                    Debug.Log("패킷 잘못 받음 nReadSize = " + nReadSize + " // recvDataSize.size = " + recvDataSize.size);
-                    ErrorReset(ref tempSock);
-                }
-                else
-                {
-                    Debug.Log("둘다 아니야. readSize = " + nReadSize + " // recvDataSize.size = " + recvDataSize.size + " // isRecvSizeState = " + isRecvSizeState);
-                    ErrorReset(ref tempSock);
-                }
-                #endregion
-                Receive(ConstKind.DataSizeBuf); // 진짜 데이터를 받았으니 이제 다시 얼마큼 받아야하는지 g_DataSize를 받을 차례
+                CurRecvDataSize += clientSock.Receive(recvBuffer, 0, ConstKind.DataSizeBuf, SocketFlags.None);
+                if (CurRecvDataSize >= ConstKind.DataSizeBuf)
+                    break;
             }
-            catch (ProtoException se)
+            recvDataSizeState(ConstKind.DataSizeBuf, ref clientSock);
+        }
+
+        void recvnData()
+        {
+            CurRecvDataSize = 0;
+            while (true)
             {
-                Debug.Log(se.Message);
-                ErrorReset(ref tempSock);
+                CurRecvDataSize += clientSock.Receive(recvBuffer, 0, recvDataSize.size, SocketFlags.None);
+                if (CurRecvDataSize >= recvDataSize.size)
+                    break;
             }
+            byte[] recvBytes = ReSizeBuffer(ref recvBuffer, recvDataSize.size);
+            switch (recvDataSize.type)
+            {
+                case g_DataType.READYSET:
+                    recvReadySetState(ref recvBytes);
+                    break;
+                case g_DataType.PROTOCOL:
+                    recvProtocolState(ref recvBytes);
+                    break;
+                case g_DataType.MESSAGE:
+                    recvMessageState(ref recvBytes);
+                    break;
+                case g_DataType.TRANSFORM:
+                    recvTransformState(ref recvBytes);
+                    break;
+                default:
+                    Debug.Log("정의 되어 있지 않은 타입 받음");
+                    break;
+            }
+            isRecvSizeState = true; // 서버로부터 사이즈 받는 상태 true로 바꿈
+            recvDataSize = null; // 받을 데이터 초기화
         }
         //  리셋 시킬 소켓(받은 패킷 다 버릴것)
         private void ErrorReset(ref Socket socket)
@@ -372,12 +432,34 @@ namespace MyNetWorkView
             ErrorHandler.RecvBufferFlush(ref socket);
             recvDataSize = null;
             isRecvSizeState = true;
-            Receive(ConstKind.DataSizeBuf);
         }
 
-        private void Receive(int recvSize)
+        #endregion
+
+        // 서버 작업 진행
+        void recvnThreadWork()
         {
-            cbSock.BeginReceive(recvBuffer, 0, recvSize, SocketFlags.None, new AsyncCallback(OnReceiveCallBack), cbSock);
+            while(true)
+            {
+                try
+                {
+                    if(isRecvSizeState)
+                    {
+                        recvSize();
+                    }
+                    else
+                    {
+                        recvnData();
+                    }
+                }
+                catch (ProtoException se)
+                {
+                    Debug.Log(se.Message);
+                    ErrorReset(ref clientSock);
+                }
+                Thread.Sleep(1700);
+            }
         }
+
     }
 }

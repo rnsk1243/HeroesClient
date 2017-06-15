@@ -46,10 +46,10 @@ namespace graduationWork
   {
     public g_ReadySet()
         {
-            _player1 = new g_CreateCharaterInfo();
-            _player2 = new g_CreateCharaterInfo();
-            _player3 = new g_CreateCharaterInfo();
-            _player4 = new g_CreateCharaterInfo();
+            player1 = new g_CreateCharaterInfo();
+            player2 = new g_CreateCharaterInfo();
+            player3 = new g_CreateCharaterInfo();
+            player4 = new g_CreateCharaterInfo();
         }
     
     private graduationWork.g_CreateCharaterInfo _player1;
@@ -211,20 +211,23 @@ namespace graduationWork
     public enum g_DataType
     {
             
-      [global::ProtoBuf.ProtoEnum(Name=@"PROTOCOL", Value=0)]
-      PROTOCOL = 0,
+      [global::ProtoBuf.ProtoEnum(Name=@"NULLDATA", Value=0)]
+      NULLDATA = 0,
             
-      [global::ProtoBuf.ProtoEnum(Name=@"COMMAND", Value=1)]
-      COMMAND = 1,
+      [global::ProtoBuf.ProtoEnum(Name=@"PROTOCOL", Value=1)]
+      PROTOCOL = 1,
             
-      [global::ProtoBuf.ProtoEnum(Name=@"MESSAGE", Value=2)]
-      MESSAGE = 2,
+      [global::ProtoBuf.ProtoEnum(Name=@"COMMAND", Value=2)]
+      COMMAND = 2,
             
-      [global::ProtoBuf.ProtoEnum(Name=@"TRANSFORM", Value=3)]
-      TRANSFORM = 3,
+      [global::ProtoBuf.ProtoEnum(Name=@"MESSAGE", Value=3)]
+      MESSAGE = 3,
             
-      [global::ProtoBuf.ProtoEnum(Name=@"READYSET", Value=4)]
-      READYSET = 4
+      [global::ProtoBuf.ProtoEnum(Name=@"TRANSFORM", Value=4)]
+      TRANSFORM = 4,
+            
+      [global::ProtoBuf.ProtoEnum(Name=@"READYSET", Value=5)]
+      READYSET = 5
     }
   
 }

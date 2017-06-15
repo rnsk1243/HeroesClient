@@ -46,11 +46,12 @@ message g_Message {
 }
 
 enum g_DataType {
-	PROTOCOL = 0;
-	COMMAND = 1;
-	MESSAGE = 2;
-	TRANSFORM = 3;
-	READYSET = 4;
+	NULLDATA = 0;
+	PROTOCOL = 1;
+	COMMAND = 2;
+	MESSAGE = 3;
+	TRANSFORM = 4;
+	READYSET = 5;
 }
 
 message g_DataSize {

@@ -2,14 +2,24 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using MyNetWorkView;
+using NamespaceHeroesNetWorkView;
+using ConstKinds;
 
 public class MoveSynchronization : MonoBehaviour {
 
-    GameObject InitCharacter;
+    //HeroesNetWorkView netWork;
+    private static MoveSynchronization instance;
+    //보낼 데이터를 담을 큐
+    private Queue<PostData> SendQueue;
+    //싱글턴 인스턴스 반환
+    public static MoveSynchronization GetInstance
+    {
+        get
+        {
+            return instance;
+        }
+    }
     InitializationCharacter InitComponent;
-    HeroesNetWorkView netWork;
-    
     public static GameObject MyPlayer;
 
     Transform MyTr;
@@ -20,11 +30,33 @@ public class MoveSynchronization : MonoBehaviour {
     int targetPK = 0;
     bool isNewTransform = false;
 
+    //서버에 보낼 데이터 큐에 담기
+    private void PushSendData(g_DataType type, object obj, int clientNum = -1)
+    {
+        PostData pushData = new PostData(type, obj, clientNum);
+        SendQueue.Enqueue(pushData);
+    }
+
+    //큐에있는 데이터 꺼내서 서버에 보냄
+    public bool GetSendData(ref PostData sendData)
+    {
+        //데이타가 1개라도 있을 경우 꺼내서 반환
+        if (SendQueue.Count > 0)
+        {
+            sendData = SendQueue.Dequeue();
+            return true;
+        }else
+        {
+            return false;
+        }
+    }
+
     void Awake()
     {
-        netWork = HeroesNetWorkView.GetInstance();
-        InitCharacter = GameObject.FindGameObjectWithTag("InitCharacter");
-        InitComponent = InitCharacter.GetComponent<InitializationCharacter>();
+        instance = GameObject.FindGameObjectWithTag(ConstKind.TagMoveSynchronization).GetComponent<MoveSynchronization>();
+        //큐 초기화
+        SendQueue = new Queue<PostData>();
+        InitComponent = InitializationCharacter.GetInstance;
         newPosition = new Vector3();
         newRotation = new Vector3();
         newScal = new Vector3();
@@ -32,35 +64,28 @@ public class MoveSynchronization : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
-        StartCoroutine("WaitCharactorInit");
+        
     }
 
-    IEnumerator WaitCharactorInit()
+    public void AddComponent(int myClientNum)
     {
-        while (true)
-        {
-            if (InitComponent.isInitCharacter)
-            {
-                MyPlayer = InitComponent.PlayerArray[netWork.MyClientNum]; //GameObject.FindGameObjectWithTag(netWork.MyClientNum.ToString());
-                MyPlayer.AddComponent<PlayerCtrl>();
-                MyTr = MyPlayer.GetComponent<Transform>();
-                StartCoroutine("MoveSyncSend");
-                break;
-            }
-            yield return new WaitForSeconds(1.0f);
-        }
+        MyPlayer = InitComponent.PlayerArray[myClientNum]; //GameObject.FindGameObjectWithTag(netWork.MyClientNum.ToString());
+        MyPlayer.AddComponent<PlayerCtrl>();
+        MyTr = MyPlayer.GetComponent<Transform>();
     }
     
     IEnumerator MoveSyncSend()
     {
+        g_Transform sendTarget = new g_Transform();
         while (true)
         {
-            netWork.SendByteTransform(MyTr); // tr전송
+            copyTransformToG_Transform(ref sendTarget, ref MyTr);
+            PushSendData(g_DataType.TRANSFORM, sendTarget); // tr전송
             yield return new WaitForSeconds(1.7f);
         }
     }
 
-    public void copyTransformToG_Transform(ref g_Transform target, ref Transform source)
+    void copyTransformToG_Transform(ref g_Transform target, ref Transform source)
     {
         target.position.x = source.position.x;
         target.position.y = source.position.y;
@@ -97,7 +122,6 @@ public class MoveSynchronization : MonoBehaviour {
 
         if(isNewTransform)
         {
-         //   Debug.Log("targetPK = " + targetPK + " // 위치 = " + newPosition);
             InitComponent.PlayerArray[targetPK].transform.position = newPosition;
             isNewTransform = false;
         }

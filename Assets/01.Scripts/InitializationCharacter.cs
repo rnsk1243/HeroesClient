@@ -1,51 +1,77 @@
-﻿using graduationWork;
+﻿using graduationWork; 
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CommandKinds;
+using CommandKinds; 
 using ConstKinds;
-using MyNetWorkView;
+using NamespaceHeroesNetWorkView;
 
 public class InitializationCharacter : MonoBehaviour {
 
-    HeroesNetWorkView netWork;
+    //HeroesNetWorkView netWork;
+    private static InitializationCharacter instance;
+    //보낼 데이터를 담을 큐
+    private Queue<PostData> SendQueue;
+    //싱글턴 인스턴스 반환
+    public static InitializationCharacter GetInstance
+    {
+        get
+        {
+            return instance;
+        }
+    }
 
     public GameObject tofu;
     public GameObject mando;
 
     public GameObject[] PlayerArray;
-    public bool isInitCharacter = false;
+    public bool isInitCharacter;
+
+    //서버에 보낼 데이터 큐에 담기
+    private void PushSendData(g_DataType type, object obj, int clientNum = -1)
+    {
+        PostData pushData = new PostData(type, obj, clientNum);
+        SendQueue.Enqueue(pushData);
+    }
+
+    //큐에있는 데이터 꺼내서 서버에 보냄
+    public bool GetSendData(ref PostData sendData)
+    {
+        //데이타가 1개라도 있을 경우 꺼내서 반환
+        if (SendQueue.Count > 0)
+        {
+            sendData = SendQueue.Dequeue();
+            return true;
+        }else
+        {
+            return false;
+        }
+    }
 
     void Awake()
     {
-        netWork = HeroesNetWorkView.GetInstance();
+        instance = GameObject.FindGameObjectWithTag(ConstKind.TagInitializationCharacter).GetComponent<InitializationCharacter>();
+        //큐 초기화
+        SendQueue = new Queue<PostData>();
+        // netWork = HeroesNetWorkView.GetInstance();
         PlayerArray = new GameObject[4];
+        isInitCharacter = false;
     }
 
     // Use this for initialization
     void Start () {
-        StartCoroutine("ReadCheck");
+        
     }
 
-    IEnumerator ReadCheck()
-    {
-        Debug.Log("클라이언트 번호 받는 중...");
-        while (true)
-        {
-            if (-1 != netWork.MyClientNum)
-            {
-                Debug.Log("나 클라이언트 번호 = " + netWork.MyClientNum);
-                netWork.SendByteMessage(Command.EnterRoom, g_DataType.COMMAND); // 방 입장 명령
-                //netWork.SendByteMessage(Command.SelectMandu, g_DataType.COMMAND); // 내 캐릭 만두
-                netWork.SendByteMessage(Command.SelectTofu, g_DataType.COMMAND); // 내 캐릭 두부
-                //netWork.SendByteMessage(Command.TeamRed, g_DataType.COMMAND); // 내 팀 레드
-                netWork.SendByteMessage(Command.TeamBlue, g_DataType.COMMAND); // 내 팀 블루
-                StartCoroutine("CreateCharacter"); // 트랜스폼 코루틴 실행
-                break;
-            }
-            yield return new WaitForSeconds(1.0f);
-        }
-    }
+
+    // ui 구현되면 버튼 클릭시 호출되도록 만들 것.
+    //public void SendMyCharacterFunc()
+    //{
+    //    Debug.Log("내가할 캐릭터 정보 보내기");
+    //    PushSendData(g_DataType.COMMAND, Command.EnterRoom);
+    //    PushSendData(g_DataType.COMMAND, Command.SelectTofu);
+    //    PushSendData(g_DataType.COMMAND, Command.TeamBlue);
+    //}
 
     void instantiatePlayer(g_CreateCharaterInfo player)
     {
@@ -81,29 +107,13 @@ public class InitializationCharacter : MonoBehaviour {
         PlayerArray[pk] = obj;
     }
 
-    IEnumerator CreateCharacter()
+    public void CreateCharacter(g_ReadySet readySet)
     {
-        Debug.Log("플레이어를 기다리는 중...");
-        while (true)
-        {
-            if (netWork.isStartState)
-            {
-                instantiatePlayer(netWork.g_readySet.player1);
-                instantiatePlayer(netWork.g_readySet.player2);
-                instantiatePlayer(netWork.g_readySet.player3);
-                instantiatePlayer(netWork.g_readySet.player4);
-                isInitCharacter = true;
-                for(int i=0; i<3; i++)
-                {
-                    Debug.Log(i + " 번 tag = " + PlayerArray[i].tag);
-                }
-                break;
-            }
-            else
-            {
-                netWork.SendByteMessage("start", g_DataType.COMMAND);
-            }
-            yield return new WaitForSeconds(3.0f);
-        }
+        instantiatePlayer(readySet.player1);
+        instantiatePlayer(readySet.player2);
+        instantiatePlayer(readySet.player3);
+        instantiatePlayer(readySet.player4);
+        isInitCharacter = true;
     }
+
 }
