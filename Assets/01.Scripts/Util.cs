@@ -48,8 +48,17 @@ namespace ConstKinds
 
     public class ConstKind
     {
+        public const int StartClientPK = 5; // 시작전 클라이언트 번호
+        public const int InitThreadSleepTime = 1000; // 초기화 쉬는 시간
+        public const int RequestInitAmount = 50; // 이 횟수 이상 요청하면 문제가 발생으로 간주하고 스레드 죽임.
+        public const int SendThreadSleepTime = 100; // millisecond
+        public const int RecvThreadSleepTime = 100; // millisecond
+        public const float MoveSyncSend_WaitForSeconds = 3.0f; // 위치를 queue에 Push 하고 쉬는 시간
+        public const float CheckSendQueue_WaitForSeconds = 0.1f; // 여러 클래스의 큐를 돌면서 서버에 보낼 데이터를 Postbox에 넣고 쉬는 시간
+        public const float CheckRecvQueue_WaitForSeconds = 0.1f; // 서버에서 받은 데이터를 Postbox에서 꺼내서 각 클래스에게 전달 하고 쉬는 시간
+
         public const int DataSizeBuf = 6; // DataSize를 받는데 필요한 크기
-        public const int RecvBufferFlushSize = 8192; // 잘 못 받은 패킷 버리는데 필요한 버퍼 크기(넉넉히 잡아둠)
+        public const int RecvBufferFlushSize = 16384; // 잘 못 받은 패킷 버리는데 필요한 버퍼 크기(넉넉히 잡아둠)
         // 접속할 곳의 IP주소.
         public const string address = "127.0.0.1";
 
@@ -62,8 +71,6 @@ namespace ConstKinds
         public const int RedTeam = 1; // 레드 팀
         public const int BlueTeam = 2; // 블루 팀
         public const int NoneTeam = 0; // 팀이 정해지지 않음
-        public const int GoodTransformSize = 63; // Deserialize할 수 있는 크기
-        public const int GoodRecvDataSize = 53;
         public const string TagInitializationCharacter = "InitCharacter";
         public const string TagMoveSynchronization = "MoveSynchronization";
     }

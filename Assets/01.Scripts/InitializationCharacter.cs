@@ -28,15 +28,20 @@ public class InitializationCharacter : MonoBehaviour {
     public bool isInitCharacter;
 
     //서버에 보낼 데이터 큐에 담기
-    private void PushSendData(g_DataType type, object obj, int clientNum = -1)
+    private void PushSendData(g_DataType type, object obj)
     {
-        PostData pushData = new PostData(type, obj, clientNum);
+        PostData pushData = new PostData(type, obj, HeroesNetWorkView.MyClientNum);
         SendQueue.Enqueue(pushData);
     }
 
     //큐에있는 데이터 꺼내서 서버에 보냄
     public bool GetSendData(ref PostData sendData)
     {
+        //if(SendQueue == null)
+        //{
+        //    Debug.Log("SendQueue가 null");
+        //    return false;
+        //}
         //데이타가 1개라도 있을 경우 꺼내서 반환
         if (SendQueue.Count > 0)
         {
@@ -50,7 +55,12 @@ public class InitializationCharacter : MonoBehaviour {
 
     void Awake()
     {
+        Debug.Log("InitializationCharacter Awake 호출");
         instance = GameObject.FindGameObjectWithTag(ConstKind.TagInitializationCharacter).GetComponent<InitializationCharacter>();
+        if(instance == null)
+        {
+            Debug.Log("InitializationCharacter Awake instance null");
+        }
         //큐 초기화
         SendQueue = new Queue<PostData>();
         // netWork = HeroesNetWorkView.GetInstance();
@@ -109,11 +119,14 @@ public class InitializationCharacter : MonoBehaviour {
 
     public void CreateCharacter(g_ReadySet readySet)
     {
-        instantiatePlayer(readySet.player1);
-        instantiatePlayer(readySet.player2);
-        instantiatePlayer(readySet.player3);
-        instantiatePlayer(readySet.player4);
-        isInitCharacter = true;
+        if(!isInitCharacter)
+        {
+            instantiatePlayer(readySet.player1);
+            instantiatePlayer(readySet.player2);
+            instantiatePlayer(readySet.player3);
+            instantiatePlayer(readySet.player4);
+            isInitCharacter = true;
+        }
     }
 
 }

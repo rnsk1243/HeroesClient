@@ -7,6 +7,7 @@ using ConstKinds;
 
 public class MoveSynchronization : MonoBehaviour {
 
+    WaitForSeconds WaitMoveSyncSend = new WaitForSeconds(ConstKind.MoveSyncSend_WaitForSeconds);
     //HeroesNetWorkView netWork;
     private static MoveSynchronization instance;
     //보낼 데이터를 담을 큐
@@ -31,9 +32,9 @@ public class MoveSynchronization : MonoBehaviour {
     bool isNewTransform = false;
 
     //서버에 보낼 데이터 큐에 담기
-    private void PushSendData(g_DataType type, object obj, int clientNum = -1)
+    private void PushSendData(g_DataType type, object obj)
     {
-        PostData pushData = new PostData(type, obj, clientNum);
+        PostData pushData = new PostData(type, obj, HeroesNetWorkView.MyClientNum);
         SendQueue.Enqueue(pushData);
     }
 
@@ -72,16 +73,19 @@ public class MoveSynchronization : MonoBehaviour {
         MyPlayer = InitComponent.PlayerArray[myClientNum]; //GameObject.FindGameObjectWithTag(netWork.MyClientNum.ToString());
         MyPlayer.AddComponent<PlayerCtrl>();
         MyTr = MyPlayer.GetComponent<Transform>();
+        StartCoroutine(MoveSyncSend());
     }
     
     IEnumerator MoveSyncSend()
     {
+ //       Debug.Log("MoveSyncSend 코루틴 실행");
         g_Transform sendTarget = new g_Transform();
         while (true)
         {
             copyTransformToG_Transform(ref sendTarget, ref MyTr);
             PushSendData(g_DataType.TRANSFORM, sendTarget); // tr전송
-            yield return new WaitForSeconds(1.7f);
+//            Debug.Log("MoveSync 코루틴에서 PushSendData 했음");
+            yield return WaitMoveSyncSend;
         }
     }
 

@@ -7,6 +7,8 @@ using graduationWork;
 using ProtoBuf;
 using System.Collections;
 using ConstKinds;
+using NamespaceHeroesNetWorkView;
+using UnityEngine;
 
 namespace NamespacePostbox
 {
@@ -38,9 +40,10 @@ namespace NamespacePostbox
         }
 
         //서버에 보낼 데이터 큐에 담기
-        public void PushSendData(g_DataType type, object obj, int clientNum = -1)
+        public void PushSendData(g_DataType type, object obj)
         {
-            PostData pushData = new PostData(type, obj, clientNum);
+  //          Debug.Log("중요!!!!!!!!! = " + HeroesNetWorkView.MyClientNum);
+            PostData pushData = new PostData(type, obj, HeroesNetWorkView.MyClientNum);
             SendQueue.Enqueue(pushData);
         }
 
@@ -51,9 +54,11 @@ namespace NamespacePostbox
             if (SendQueue.Count > 0)
             {
                 sendData = SendQueue.Dequeue();
+ //               Debug.Log("서버에게 보낼 데이터 가져옴 = " + sendData.Type + " // " + sendData.data);
                 return true;
             }else
             {
+ //               Debug.Log("서버에게 보낼 테이터 없다");
                 return false;
             }
         }
