@@ -6,7 +6,7 @@ using System.IO;
 using graduationWork;
 using ProtoBuf;
 using System.Collections;
-using ConstKinds;
+using NamespaceConstKinds;
 using NamespaceHeroesNetWorkView;
 using UnityEngine;
 

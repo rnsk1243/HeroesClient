@@ -3,15 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using NamespaceHeroesNetWorkView;
-using ConstKinds;
+using NamespaceConstKinds;
+using NamespaceMathCalc;
 
 public class MoveSynchronization : MonoBehaviour {
 
-    WaitForSeconds WaitMoveSyncSend = new WaitForSeconds(ConstKind.MoveSyncSend_WaitForSeconds);
+    //WaitForSeconds WaitMoveSyncSend = new WaitForSeconds(ConstKind.MoveSyncSend_WaitForSeconds);
     //HeroesNetWorkView netWork;
-    private static MoveSynchronization instance;
     //보낼 데이터를 담을 큐
     private Queue<PostData> SendQueue;
+    private static MoveSynchronization instance;
     //싱글턴 인스턴스 반환
     public static MoveSynchronization GetInstance
     {
@@ -30,6 +31,8 @@ public class MoveSynchronization : MonoBehaviour {
 
     int targetPK = 0;
     bool isNewTransform = false;
+    //g_Transform[,] recvTransformArray;
+    //Vector3[] moveSpline;
 
     //서버에 보낼 데이터 큐에 담기
     private void PushSendData(g_DataType type, object obj)
@@ -73,36 +76,20 @@ public class MoveSynchronization : MonoBehaviour {
         MyPlayer = InitComponent.PlayerArray[myClientNum]; //GameObject.FindGameObjectWithTag(netWork.MyClientNum.ToString());
         MyPlayer.AddComponent<PlayerCtrl>();
         MyTr = MyPlayer.GetComponent<Transform>();
-        StartCoroutine(MoveSyncSend());
+        //StartCoroutine(MoveSyncSend());
     }
     
-    IEnumerator MoveSyncSend()
-    {
- //       Debug.Log("MoveSyncSend 코루틴 실행");
-        g_Transform sendTarget = new g_Transform();
-        while (true)
-        {
-            copyTransformToG_Transform(ref sendTarget, ref MyTr);
-            PushSendData(g_DataType.TRANSFORM, sendTarget); // tr전송
-//            Debug.Log("MoveSync 코루틴에서 PushSendData 했음");
-            yield return WaitMoveSyncSend;
-        }
-    }
-
-    void copyTransformToG_Transform(ref g_Transform target, ref Transform source)
-    {
-        target.position.x = source.position.x;
-        target.position.y = source.position.y;
-        target.position.z = source.position.z;
-        target.rotation.x = source.rotation.x;
-        target.rotation.y = source.rotation.y;
-        target.rotation.z = source.rotation.z;
-        target.scale.x = source.localScale.x;
-        target.scale.y = source.localScale.y;
-        target.scale.z = source.localScale.z;
-    }
-
-
+ //   IEnumerator MoveSyncSend()
+ //   {
+ ////       Debug.Log("MoveSyncSend 코루틴 실행");
+ //       g_Transform sendTarget = new g_Transform();
+ //       while (true)
+ //       {
+ //           copyTransformToG_Transform(ref sendTarget, ref MyTr);
+ //           PushSendData(g_DataType.TRANSFORM, sendTarget); // tr전송
+ //           yield return WaitMoveSyncSend;
+ //       }
+ //   }
 
     public void MoveCharacter(int pkNum, ref g_Transform source)
     {
@@ -120,6 +107,22 @@ public class MoveSynchronization : MonoBehaviour {
         targetPK = pkNum;
         isNewTransform = true;
     }
+
+    // 보간 처리 후 캐릭터 이동
+    //public void MoveCharacter(int clientNum)
+    //{
+    //    if (isNewTransform)
+    //    {
+    //        moveSpline = MathCalc.InterpolationCoordinate(clientNum, recvTransformArray);
+    //        GameObject targetClient = InitComponent.PlayerArray[clientNum];
+    //        for (int i = ConstKind.InterpolationResultCoordinateNum; i > 0; i--)
+    //        {
+    //            targetClient.transform.position =
+    //            Vector3.MoveTowards(InitComponent.PlayerArray[clientNum].transform.position, moveSpline[i], 10.0f * Time.deltaTime);
+    //        }
+    //        isNewTransform = false;
+    //    }
+    //}
 
     // Update is called once per frame
     void Update () {

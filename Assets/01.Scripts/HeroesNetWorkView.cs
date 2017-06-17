@@ -9,11 +9,11 @@ using System.IO;
 using graduationWork;
 using ProtoBuf;
 using System.Collections;
-using ConstKinds;
+using NamespaceConstKinds;
 using NamespaceErrorHandler;
 using System.Threading;
 using NamespacePostbox;
-using CommandKinds;
+using NamespaceCommandKinds;
 
 namespace NamespaceHeroesNetWorkView
 {
@@ -95,10 +95,10 @@ namespace NamespaceHeroesNetWorkView
                         case ClientState.SendMyCharacter:
                             Debug.Log("내가할 캐릭터 정보 보내기");
                             postbox.PushSendData(g_DataType.COMMAND, Command.EnterRoom);
-                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
-                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
-                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
-                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
                             SetClientState(ClientState.RecvCharacter);
                             break;
                         case ClientState.RecvCharacter:
@@ -211,7 +211,7 @@ namespace NamespaceHeroesNetWorkView
         // 내 구분 코드 요청과 받기
         void SetDistinguishCode()
         {
-            postbox.PushSendData(g_DataType.PROTOCOL, CommandKinds.Command.RequestDistinguishCode);
+            postbox.PushSendData(g_DataType.PROTOCOL, Command.RequestDistinguishCode);
         }
 
         // 받은 크기만큼 버퍼를 딱 맞춤.

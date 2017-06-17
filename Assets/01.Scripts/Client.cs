@@ -4,7 +4,7 @@ using UnityEngine;
 using NamespacePostbox;
 using NamespaceHeroesNetWorkView;
 using graduationWork;
-using ConstKinds;
+using NamespaceConstKinds;
 
 public class Client : MonoBehaviour {
 
@@ -14,6 +14,7 @@ public class Client : MonoBehaviour {
 
     InitializationCharacter InitChara;
     MoveSynchronization MoveSync;
+    PlayerCtrl PlayCtl;
 
     void Awake()
     {
@@ -24,6 +25,7 @@ public class Client : MonoBehaviour {
             Debug.Log("Client Awake InitChara Null");
         }
         MoveSync = MoveSynchronization.GetInstance;
+        
         postbox = Postbox.GetInstance;
     }
 
@@ -47,15 +49,23 @@ public class Client : MonoBehaviour {
             if (MoveSync.GetSendData(ref sendData))
             {
                 postbox.PushSendData(sendData.Type, sendData.data);
-            }else
-            {
-                //Debug.Log("MoveSync Queue 비었나?");
             }
             yield return WaitCheckSendQueue;
         }
     }
-    
 
+    private IEnumerator CheckSendQueueTr()
+    {
+        PostData sendData = new PostData(g_DataType.NULLDATA, 0, -1);
+        while (true)
+        {
+            if (PlayCtl.GetSendData(ref sendData))
+            {
+                postbox.PushSendData(sendData.Type, sendData.data);
+            }
+            yield return WaitCheckSendQueue;
+        }
+    }
     //큐를 주기적으로 탐색 // 받은 데이터를 꺼내서 적재적소에 보내기
     private IEnumerator CheckRecvQueue()
     {
@@ -79,6 +89,8 @@ public class Client : MonoBehaviour {
                             if ("AddComponent" == (string)recvData.data)
                             {
                                 MoveSync.AddComponent(HeroesNetWorkView.MyClientNum);
+                                PlayCtl = PlayerCtrl.GetInstance;
+                                StartCoroutine(CheckSendQueueTr());
                             }
                             break;
                         case g_DataType.PROTOCOL:

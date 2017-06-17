@@ -2,8 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using CommandKinds; 
-using ConstKinds;
+using NamespaceCommandKinds; 
+using NamespaceConstKinds;
 using NamespaceHeroesNetWorkView;
 
 public class InitializationCharacter : MonoBehaviour {
