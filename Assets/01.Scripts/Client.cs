@@ -100,8 +100,9 @@ public class Client : MonoBehaviour {
                             InitChara.CreateCharacter((g_ReadySet)recvData.data);
                             break;
                         case g_DataType.TRANSFORM:
-                            g_Transform gTr = (g_Transform)recvData.data;
-                            MoveSync.MoveCharacter(recvData.ClientNum, ref gTr);
+                            //g_Transform gTr = (g_Transform)recvData.data;
+                            MoveSync.PushRecvData(g_DataType.TRANSFORM, recvData.data, recvData.ClientNum);
+                            //MoveSync.MoveCharacter(recvData.ClientNum, ref gTr);
                             break;
                         default:
                             Debug.Log("처리되지 않은 case type = " + recvData.Type);

@@ -11,7 +11,7 @@ public class InitializationCharacter : MonoBehaviour {
     //HeroesNetWorkView netWork;
     private static InitializationCharacter instance;
     //보낼 데이터를 담을 큐
-    private Queue<PostData> SendQueue;
+    private Queue<PostData> SendInitQueue;
     //싱글턴 인스턴스 반환
     public static InitializationCharacter GetInstance
     {
@@ -31,7 +31,7 @@ public class InitializationCharacter : MonoBehaviour {
     private void PushSendData(g_DataType type, object obj)
     {
         PostData pushData = new PostData(type, obj, HeroesNetWorkView.MyClientNum);
-        SendQueue.Enqueue(pushData);
+        SendInitQueue.Enqueue(pushData);
     }
 
     //큐에있는 데이터 꺼내서 서버에 보냄
@@ -43,9 +43,9 @@ public class InitializationCharacter : MonoBehaviour {
         //    return false;
         //}
         //데이타가 1개라도 있을 경우 꺼내서 반환
-        if (SendQueue.Count > 0)
+        if (SendInitQueue.Count > 0)
         {
-            sendData = SendQueue.Dequeue();
+            sendData = SendInitQueue.Dequeue();
             return true;
         }else
         {
@@ -62,7 +62,7 @@ public class InitializationCharacter : MonoBehaviour {
             Debug.Log("InitializationCharacter Awake instance null");
         }
         //큐 초기화
-        SendQueue = new Queue<PostData>();
+        SendInitQueue = new Queue<PostData>();
         // netWork = HeroesNetWorkView.GetInstance();
         PlayerArray = new GameObject[4];
         isInitCharacter = false;

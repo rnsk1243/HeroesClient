@@ -95,14 +95,14 @@ namespace NamespaceHeroesNetWorkView
                         case ClientState.SendMyCharacter:
                             Debug.Log("내가할 캐릭터 정보 보내기");
                             postbox.PushSendData(g_DataType.COMMAND, Command.EnterRoom);
-                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
-                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
-                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
-                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
                             SetClientState(ClientState.RecvCharacter);
                             break;
                         case ClientState.RecvCharacter:
-                            Debug.Log("Start 보내는중");
+                            //Debug.Log("Start 보내는중");
                             postbox.PushSendData(g_DataType.COMMAND, Command.StartButton);
                             break;
                        case ClientState.AddComponent:
@@ -341,8 +341,8 @@ namespace NamespaceHeroesNetWorkView
             if(postbox.GetSendData(ref sendData))
             {
               //  Debug.Log("보낼 데이타 = " + sendData.ClientNum + "//" + sendData.Type + "//" + (string)sendData.data);
-                if (sendData.Type != g_DataType.NULLDATA)
-                {
+               // if (sendData.Type != g_DataType.NULLDATA)
+               // {
                     switch (sendData.Type)
                     {
                         case g_DataType.COMMAND:
@@ -364,7 +364,7 @@ namespace NamespaceHeroesNetWorkView
                         default:
                             break;
                     }
-                }
+           //     }
             }
         }
         #endregion
@@ -465,7 +465,7 @@ namespace NamespaceHeroesNetWorkView
                 if (CurRecvDataSize >= ConstKind.DataSizeBuf)
                     break;
             }
-            Debug.Log("받은 데이터 크기 = " + CurRecvDataSize);
+            //Debug.Log("받은 데이터 크기 = " + CurRecvDataSize);
             recvDataSizeState(ConstKind.DataSizeBuf, ref clientSock);
         }
 

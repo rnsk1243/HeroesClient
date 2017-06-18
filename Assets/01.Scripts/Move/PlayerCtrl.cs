@@ -12,9 +12,9 @@ public class PlayerCtrl : MonoBehaviour {
     private float h = 0.0f;
     private float v = 0.0f;
     //보낼 데이터를 담을 큐
-    private Queue<PostData> SendQueue;
+    private Queue<PostData> SendMyTrQueue;
     private Transform tr;
-    public float moveSpeed = 10.0f;
+    public float moveSpeed = ConstKind.MoveSpeed;
 
     private static PlayerCtrl instance;
     //싱글턴 인스턴스 반환
@@ -30,16 +30,16 @@ public class PlayerCtrl : MonoBehaviour {
     private void PushSendData(g_DataType type, object obj)
     {
         PostData pushData = new PostData(type, obj, HeroesNetWorkView.MyClientNum);
-        SendQueue.Enqueue(pushData);
+        SendMyTrQueue.Enqueue(pushData);
     }
 
     //큐에있는 데이터 꺼내서 서버에 보냄
     public bool GetSendData(ref PostData sendData)
     {
         //데이타가 1개라도 있을 경우 꺼내서 반환
-        if (SendQueue.Count > 0)
+        if (SendMyTrQueue.Count > 0)
         {
-            sendData = SendQueue.Dequeue();
+            sendData = SendMyTrQueue.Dequeue();
             return true;
         }
         else
@@ -48,13 +48,14 @@ public class PlayerCtrl : MonoBehaviour {
         }
     }
 
+
     //private Socket mSocket;
     // Use this for initialization
     void Awake () {
         instance = MoveSynchronization.MyPlayer.GetComponent<PlayerCtrl>(); //GameObject.FindGameObjectWithTag(ConstKind.TagPlayerCtrl).GetComponent<PlayerCtrl>();
       tr = GetComponent<Transform>();
         //큐 초기화
-        SendQueue = new Queue<PostData>();
+        SendMyTrQueue = new Queue<PostData>();
     }
 
     void Start()
@@ -84,11 +85,11 @@ public class PlayerCtrl : MonoBehaviour {
         {
             deltaV = Input.GetAxis("Vertical");
             deltaH = Input.GetAxis("Horizontal");
-            //Debug.Log("CheckMoveSendTr호출 deltaV = " + deltaV);
+            //Debug.Log("CheckMoveSendTr호출 deltaV = " + deltaV + " // H = " + deltaH);
             if (ConstKind.DeltaPositionSend < deltaV || deltaV < -ConstKind.DeltaPositionSend || 
                 ConstKind.DeltaPositionSend < deltaH || deltaH < -ConstKind.DeltaPositionSend)
             {
-                Debug.Log("tr queue에 담음");
+                //Debug.Log("tr queue에 담음");
                 copyTransformToG_Transform(ref sendTarget, ref tr);
                 PushSendData(g_DataType.TRANSFORM, sendTarget); // tr전송
             }

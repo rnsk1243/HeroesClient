@@ -56,12 +56,12 @@ namespace NamespaceConstKinds
         public const int StartClientPK = 5; // 시작전 클라이언트 번호
         public const int InitThreadSleepTime = 1000; // 초기화 쉬는 시간
         public const int RequestInitAmount = 50; // 이 횟수 이상 요청하면 문제가 발생으로 간주하고 스레드 죽임.
-        public const int SendThreadSleepTime = 100; // millisecond
-        public const int RecvThreadSleepTime = 100; // millisecond
-        public const float CheckMoveSendTr_WaitForSeconds = 0.2f; // 자기 위치를 queue에 Push 하고 쉬는 시간
-        public const float CheckSendQueue_WaitForSeconds = 0.1f; // 여러 클래스의 큐를 돌면서 서버에 보낼 데이터를 Postbox에 넣고 쉬는 시간
-        public const float CheckRecvQueue_WaitForSeconds = 0.1f; // 서버에서 받은 데이터를 Postbox에서 꺼내서 각 클래스에게 전달 하고 쉬는 시간
+        public const int SendThreadSleepTime = 16; // millisecond
+        public const int RecvThreadSleepTime = 16; // millisecond
+        public const float CheckSendQueue_WaitForSeconds = 0.01f; // 여러 클래스의 큐를 돌면서 서버에 보낼 데이터를 Postbox에 넣고 쉬는 시간
+        public const float CheckRecvQueue_WaitForSeconds = 0.01f; // 서버에서 받은 데이터를 Postbox에서 꺼내서 각 클래스에게 전달 하고 쉬는 시간
 
+        public const float MoveSpeed = 10.0f;
         public const int DataSizeBuf = 6; // DataSize를 받는데 필요한 크기
         public const int RecvBufferFlushSize = 16384; // 잘 못 받은 패킷 버리는데 필요한 버퍼 크기(넉넉히 잡아둠)
         // 접속할 곳의 IP주소.
@@ -84,10 +84,13 @@ namespace NamespaceConstKinds
         public const int OldData = 1; // 오래된 데이터
         public const int OldOldData = 2; // 중간 오래된 데이터
         public const int OldOldOldData = 3; // 최고 오래된 데이터
+        public const int MiddleResultCoordinateNum = 4; // 중간값 보간 몇개할지(높을 수록 같은 좌표가 겹쳐 잔상)
+        public const float CheckMoveSendTr_WaitForSeconds = 0.05f; //3프레임당 1번 자기 위치를 queue에 Push 하고 쉬는 시간 
+        public const float Move_WaitForSeconds = 0.013f; // 1프레임 이동 하고 얼마나 쉬는 시간(높을 수록 뛰엄뛰엄 이동)
         public const int InterpolationCoordinateNum = 4; // 보간하는데 필요한 점의 갯수 4개(3차 방정식)
         public const int InterpolationResultCoordinateNum = 7; // 보간이 완료된 결과 점의 좌표 갯수 4개 + 3개(보간되어 나온 좌표)
         public const int Matrix4x4Size = 16;
-        public const float DeltaPositionSend = 0.01f; // 얼마큼 위치 변화가 있으면 나의 위치를 보낼지 정함
+        public const float DeltaPositionSend = 0.01f; // 얼마큼 위치 변화가 있으면 나의 위치를 보낼지 정함(이동 민감도)
 
         public enum Transform { Position, Rotation, Scale };
         public enum ErrorCode
@@ -261,7 +264,7 @@ namespace NamespaceMathCalc
         }
 
         // 보간 좌표 구하기
-        public static Vector3[] InterpolationCoordinate(int clientNum, g_Transform[,] recvTransformArray)
+        public static Vector3[] InterpolationCoordinate(int clientNum, g_Transform[] recvTransformArray)
         {
             Vector3[] resultPosition = new Vector3[ConstKind.InterpolationResultCoordinateNum];
             Vector3[] position = new Vector3[ConstKind.InterpolationCoordinateNum];
@@ -272,7 +275,7 @@ namespace NamespaceMathCalc
             double[,] InverseMatrix;
             for (int i = ConstKind.NewData; i < ConstKind.InterpolationCoordinateNum; i++)
             {
-                position[i] = Useful.getVector3(ref recvTransformArray[clientNum, i], ConstKind.Transform.Position);
+                position[i] = Useful.getVector3(ref recvTransformArray[i], ConstKind.Transform.Position);
             }
             resultX = GetMiddlePositionX(position); // 구하고자 하는 z값에 대한 x값
             matrix = MakePowMatrix(position); // 행렬
