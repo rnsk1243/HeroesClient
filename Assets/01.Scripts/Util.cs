@@ -62,6 +62,7 @@ namespace NamespaceConstKinds
         public const float CheckRecvQueue_WaitForSeconds = 0.01f; // 서버에서 받은 데이터를 Postbox에서 꺼내서 각 클래스에게 전달 하고 쉬는 시간
 
         public const float MoveSpeed = 10.0f;
+        public const float RotSpeed = 100.0f;
         public const int DataSizeBuf = 6; // DataSize를 받는데 필요한 크기
         public const int RecvBufferFlushSize = 16384; // 잘 못 받은 패킷 버리는데 필요한 버퍼 크기(넉넉히 잡아둠)
         // 접속할 곳의 IP주소.
@@ -314,7 +315,7 @@ namespace NamespaceUseful
                 case ConstKind.Transform.Rotation:
                     return new Vector3(gTr.rotation.x, gTr.rotation.y, gTr.rotation.z);
                 case ConstKind.Transform.Scale:
-                    return new Vector3(gTr.scale.x, gTr.rotation.y, gTr.scale.z);
+                    return new Vector3(gTr.scale.x, gTr.scale.y, gTr.scale.z);
                 default:
                     return new Vector3(0, 0, 0);
             }

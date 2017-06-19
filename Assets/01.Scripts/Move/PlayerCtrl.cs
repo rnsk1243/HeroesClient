@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using NamespaceConstKinds;
 using graduationWork;
 using NamespaceHeroesNetWorkView;
+using System;
 
 public class PlayerCtrl : MonoBehaviour {
 
@@ -14,9 +15,11 @@ public class PlayerCtrl : MonoBehaviour {
     //보낼 데이터를 담을 큐
     private Queue<PostData> SendMyTrQueue;
     private Transform tr;
-    public float moveSpeed = ConstKind.MoveSpeed;
+    float moveSpeed = ConstKind.MoveSpeed;
+    float rotSpeed = ConstKind.RotSpeed;
 
     private static PlayerCtrl instance;
+    bool isJump = false;
     //싱글턴 인스턴스 반환
     public static PlayerCtrl GetInstance
     {
@@ -68,9 +71,9 @@ public class PlayerCtrl : MonoBehaviour {
         target.position.x = source.position.x;
         target.position.y = source.position.y;
         target.position.z = source.position.z;
-        target.rotation.x = source.rotation.x;
-        target.rotation.y = source.rotation.y;
-        target.rotation.z = source.rotation.z;
+        target.rotation.x = source.eulerAngles.x;
+        target.rotation.y = source.eulerAngles.y;
+        target.rotation.z = source.eulerAngles.z;
         target.scale.x = source.localScale.x;
         target.scale.y = source.localScale.y;
         target.scale.z = source.localScale.z;
@@ -80,14 +83,18 @@ public class PlayerCtrl : MonoBehaviour {
     {
         float deltaV = 0.0f;
         float deltaH = 0.0f;
+        float deltaX = 0.0f;
         g_Transform sendTarget = new g_Transform();
         while (true)
         {
             deltaV = Input.GetAxis("Vertical");
             deltaH = Input.GetAxis("Horizontal");
+            deltaX = Input.GetAxis("Mouse X");
             //Debug.Log("CheckMoveSendTr호출 deltaV = " + deltaV + " // H = " + deltaH);
             if (ConstKind.DeltaPositionSend < deltaV || deltaV < -ConstKind.DeltaPositionSend || 
-                ConstKind.DeltaPositionSend < deltaH || deltaH < -ConstKind.DeltaPositionSend)
+                ConstKind.DeltaPositionSend < deltaH || deltaH < -ConstKind.DeltaPositionSend ||
+                ConstKind.DeltaPositionSend < deltaX || deltaX < -ConstKind.DeltaPositionSend ||
+                isJump)
             {
                 //Debug.Log("tr queue에 담음");
                 copyTransformToG_Transform(ref sendTarget, ref tr);
@@ -106,5 +113,35 @@ public class PlayerCtrl : MonoBehaviour {
         Vector3 moveDir = (Vector3.forward * v) + (Vector3.right * h);
         
         tr.Translate(moveDir * Time.deltaTime * moveSpeed, Space.Self);
+        tr.Rotate(Vector3.up * Time.deltaTime * rotSpeed * Input.GetAxis("Mouse X"));
+
+        if (Input.GetKeyDown("space") && !isJump)
+        {
+            StartCoroutine(Jump());
+        }
+        //Debug.Log("rot y = " + tr.rotation.y);
+    }
+
+    IEnumerator Jump()
+    {
+        isJump = true;
+        Debug.Log("점프");
+        int x = 2;
+        while (x <= 8)
+        {
+            //Debug.Log("y = " + Math.Log(x, 2));
+            transform.position = new Vector3(tr.position.x, (float)Math.Log(x, 2), tr.position.z); //(Vector3.up * Time.deltaTime);
+            x++;
+            yield return new WaitForSeconds(0.05f);
+        }
+
+        while (x >= 2)
+        {
+            //Debug.Log("y = " + Math.Log(x, 2));
+            transform.position = new Vector3(tr.position.x, (float)Math.Log(x, 2), tr.position.z); //(Vector3.up * Time.deltaTime);
+            x--;
+            yield return new WaitForSeconds(0.05f);
+        }
+        isJump = false;
     }
 }

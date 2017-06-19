@@ -69,10 +69,6 @@ namespace NamespaceHeroesNetWorkView
             State = newState;
             InitRequestAmount = 0; // 상태가 바뀌었으므로 요청횟수 초기화
         }
-        public static ClientState GetCurrentState()
-        {
-            return State;
-        }
 
         private void init()
         {
@@ -95,10 +91,10 @@ namespace NamespaceHeroesNetWorkView
                         case ClientState.SendMyCharacter:
                             Debug.Log("내가할 캐릭터 정보 보내기");
                             postbox.PushSendData(g_DataType.COMMAND, Command.EnterRoom);
-                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
-                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
-                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
-                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.SelectTofu);
+                            postbox.PushSendData(g_DataType.COMMAND, Command.TeamBlue);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.SelectMandu);
+                            //postbox.PushSendData(g_DataType.COMMAND, Command.TeamRed);
                             SetClientState(ClientState.RecvCharacter);
                             break;
                         case ClientState.RecvCharacter:
@@ -267,7 +263,7 @@ namespace NamespaceHeroesNetWorkView
                 Debug.Log("전송 에러 : " + e.Message);
             }
         }
-        public void SendByteTransform(g_Transform g_Tr)
+        private void SendByteTransform(g_Transform g_Tr)
         {
             try
             {
@@ -297,7 +293,7 @@ namespace NamespaceHeroesNetWorkView
                 Debug.Log("전송 에러 : " + e.Message);
             }
         }
-        public void SendByteMessage(string message, g_DataType type)
+        private void SendByteMessage(string message, g_DataType type)
         {
             //  Debug.Log("하하하");
             if (clientSock.Connected)

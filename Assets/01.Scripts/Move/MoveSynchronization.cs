@@ -239,6 +239,7 @@ public class MoveSynchronization : MonoBehaviour {
     {
         g_Transform[] recvTransformArray = new g_Transform[2];
         Vector3[] moveSpline = new Vector3[ConstKind.MiddleResultCoordinateNum + 2];
+        Vector3[] rotateSpline = new Vector3[ConstKind.MiddleResultCoordinateNum + 2];
         bool isMoveSyncStart1= false;
         bool isMoveSyncStart2 = false;
         while (true)
@@ -251,20 +252,59 @@ public class MoveSynchronization : MonoBehaviour {
                     float deltaX = recvTransformArray[1].position.x - recvTransformArray[0].position.x;
                     float deltaY = recvTransformArray[1].position.y - recvTransformArray[0].position.y;
                     float deltaZ = recvTransformArray[1].position.z - recvTransformArray[0].position.z;
+
                     Vector3 deltaVec = new Vector3(deltaX, deltaY, deltaZ);
                     float magnitude = deltaVec.magnitude;
                     Vector3 normal = deltaVec.normalized;
                     float deltaValue = magnitude / (ConstKind.MiddleResultCoordinateNum + 1);
                     Vector3 normaldelta = normal * deltaValue;
                     Vector3 recvTransformArray0 = Useful.getVector3(ref recvTransformArray[0], ConstKind.Transform.Position);
-                    for (int i = 0; i < (ConstKind.MiddleResultCoordinateNum + 2); i++)
+                    for (int i = 0; i < (ConstKind.MiddleResultCoordinateNum + 1); i++)
                     {
                         moveSpline[i] = recvTransformArray0 + (normaldelta * i);
                     }
                     GameObject targetClient = InitComponent.PlayerArray[clientNum];
-                    for (int i = 0; i < (ConstKind.MiddleResultCoordinateNum + 2); i++)
+                    // 회전 보간
+                    
+                    Vector3 recvTransformArrayRot0 = Useful.getVector3(ref recvTransformArray[1], ConstKind.Transform.Rotation);
+
+                    //float deltaRotX = recvTransformArray[1].rotation.x - targetClient.transform.eulerAngles.x;
+                    Quaternion deltaRotFrom = Quaternion.Euler(targetClient.transform.eulerAngles);
+                    Quaternion deltaRotTo = Quaternion.Euler(recvTransformArrayRot0);
+                    
+                    //float deltaRotZ = recvTransformArray[1].rotation.z - targetClient.transform.eulerAngles.z;
+                    //Debug.Log("deltaRotY = " + deltaRotY + " // recvTransformArray[1].rotation.y = " + recvTransformArray[1].rotation.y + " // targetClient.transform.eulerAngles.y = " + targetClient.transform.eulerAngles.y);
+                    //Vector3 deltaRotVec = new Vector3(deltaRotX, deltaRotY, deltaRotZ);
+
+                    //Vector3 normaldeltaRot = deltaRotVec / (ConstKind.MiddleResultCoordinateNum + 1);
+
+                    //for (int i = 0; i < (ConstKind.MiddleResultCoordinateNum + 2); i++)
+                    //{
+                    //    rotateSpline[i] = recvTransformArrayRot0 + (normaldeltaRot * i);
+                    //    Debug.Log("rotateSpline[ " + i + " ] = " + rotateSpline[i]);
+                    //}
+                    //Debug.Log("중간 값 = " + normaldeltaRot.y);
+                    //Debug.Log("받은 y 값0 = " + recvTransformArray[0].rotation.y);
+                    //Debug.Log("받은 y 값1 = " + recvTransformArray[1].rotation.y);
+                    ////
+                    //Debug.Log("(360.0f - deltaRotVec.y) = " + (deltaRotVec.y) + " // targetClient.transform.eulerAngles.y = " + targetClient.transform.eulerAngles.y);
+
+                    //if ((360.0f + deltaRotVec.y) <= targetClient.transform.eulerAngles.y)
+                    //{
+                    //    targetClient.transform.rotation = Quaternion.Lerp(targetClient.transform.rotation, targetClient.transform.rotation * Quaternion.Euler(normaldeltaRot), 0.1f);
+                    //    Debug.Log("초기화 = " + targetClient.transform.eulerAngles);
+                    //}
+
+                    for (int i = 0; i < (ConstKind.MiddleResultCoordinateNum + 1); i++)
                     {
                         targetClient.transform.position = moveSpline[i];
+                        targetClient.transform.rotation = Quaternion.Lerp(deltaRotFrom, deltaRotTo, 1.0f);
+                        //targetClient.transform.Rotate(normaldeltaRot, Space.Self);
+                        //targetClient.transform.Rotate(normaldeltaRot);
+                        //targetClient.transform.rotation = targetClient.transform.rotation * Quaternion.Euler(normaldeltaRot);
+                        //Debug.Log("초기화 = " + targetClient.transform.eulerAngles);
+                        //Quaternion.Lerp(targetClient.transform.rotation, (targetClient.transform.rotation * Quaternion.Euler(normaldeltaRot)), 1.2f);
+                        //Debug.Log("적용된 y 값 = " + targetClient.transform.rotation.y);
                         yield return WaitMove;
                     }
                 }
